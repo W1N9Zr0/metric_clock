@@ -10,65 +10,39 @@
 //
 //===========================================
 
-$fn = 30;
+$fn = 80;
 pi = 3.14159265;
 
-//===========================================
-// Speed Reducer Demo Section
-//
-// This part assembles a little speed reducer as a demo.  There is a 
-// demo of a pump below.
+// =================
 
-
-// // Uncomment this block, and comment the one below it, for a different example.
-//// ===============
-//// These parameters are for a speed reducer with 
-////
-//// 4.5 : 1 speed ratio
-//// 9 inner lobes
-//// 11 outer lobes
-//// 3 output cam holes
-//
-//n_inner_lobes = 9;
-//lobe_diff = 2;
-//thickness = 8;
-//r_gen = 5;
-//r_offset = 10;
-//r_pins = 3;
-//r_holes = r_pins + lobe_diff*r_gen;
-//n_holes = 3;
-//r_hole_center = 33;
-//r_rotor_shaft = 16;
-//r_bolts = 2;
-//driven_shaft_od = 50;
-//r_drive_shaft = 5;
-//square_side = 15;
-//alpha = 2* n_inner_lobes / n_holes / lobe_diff *360*$t;
-//
-////  ==============
-
+// Based on Igor's rod sizes:
+shaft3= 9/32     * 25.4 /2;
+shaft2 = 1/4     * 25.4 /2;
+shaft1 = 7/32    * 25.4 /2;
 
 // ===============
 // These parameters are for a speed reducer with 
 //
-// 8 : 1 speed ratio
-// 8 inner lobes
-// 9 outer lobes
-// 4 output cam holes
+// 10 : 1 speed ratio
+// 10 inner lobes
+// 11 outer lobes
+// 5 output cam holes
 
-n_inner_lobes = 8;
- lobe_diff = 1;
+
+n_inner_lobes = 10;
+lobe_diff = 1;
 thickness = 8;
 r_gen = 6;
 r_offset = 10;
-r_pins = 5;
+r_pins = 6.35/2; // 1/4"
 r_holes = r_pins + lobe_diff*r_gen;
-n_holes = 4;
+n_holes = 5;
 r_hole_center = 32;
 r_rotor_shaft = 16;
 r_bolts = 2;
 driven_shaft_od = 50;
-r_drive_shaft = 8;
+r_drive_shaft = shaft1; // see above
+output_shaft_od = shaft2; // See above
 square_side = 10;
 alpha =  2*360*$t;
 
@@ -78,8 +52,31 @@ alpha =  2*360*$t;
 //
 echo(str(n_inner_lobes/lobe_diff, " turns on the input equals 1 turn on the output."));
 
-// This part places the INSIDE ROTOR ==========
-//
+
+
+
+render=[1,1,1,2,1,0]; // normal view
+
+//render=[1,2,0,2,0,0]; // cycloidal drive input section
+//render=[0,0,2,0,0,2]; // output section only
+
+//render=[1,2,2,2,0,2]; // panelized view combo...
+//render=[0,0,2,0,0,0]; // panelized view combo...
+
+// 0 = hide
+// 1 = display
+// 2 = solo (modifications)
+
+// 0  Inside Rotor
+// 1  Outside Rotor (s - top half)
+// 2  driven shaft (s)
+// 3  eccentric (s)
+// 4  frnt. cover
+// 5  outside rotor - bottom half. (s)
+
+// This part places the INSIDE ROTOR =========
+if (render[0] > 0)
+{
 translate([lobe_diff*r_gen*cos(alpha), lobe_diff* r_gen*sin(alpha), 0])
 rotate([0,0,-lobe_diff*alpha/n_inner_lobes])
 color([0.5, 0.5, 0.3])
@@ -91,202 +88,88 @@ inside_rotor(n_inner_lobes,
 				r_hole_center,
 				r_rotor_shaft,
 				thickness);
+}
 
 // This part places the OUTSIDE ROTOR =========
-color([1, 0, 0])
+if (render[1] > 0 ){
+color([1,0,0])
+difference(){
 outside_rotor(n_inner_lobes + lobe_diff, 
 				r_gen,
 				r_offset,
 				r_bolts,
 				driven_shaft_od,
 				1.1*thickness);
+  if (render[1] > 1) 
+translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset+1, h = thickness*1.1+0.05, center = true);
+}
+
+}
 
 // This part places the DRIVEN SHAFT =========
 //
-rotate([0,0,-lobe_diff*alpha/n_inner_lobes])
-color([0,0,1])
-driven_shaft(r_pins, n_holes, r_hole_center, thickness, driven_shaft_od, square_side) ;
+if (render[2] > 0 )
+ rotate([0,0,-lobe_diff*alpha/n_inner_lobes])
+  color([0,0,1])
+   difference(){
+    driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_od, output_shaft_od) ;
+   if (render[2] > 1 )
+    translate([0,0,-thickness])scale([1,1,2*thickness])difference(){
+      driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_od, output_shaft_od) ;
+      translate([0,0,-thickness]) cylinder(h=thickness,r=driven_shaft_od,center=true);
+     }
+ }
 
 // This part places the ECCENTRIC =========
 //
-rotate([0,0,alpha])
-eccentric(thickness, lobe_diff*r_gen, r_rotor_shaft, r_drive_shaft);
+if (render[3] > 0)
+ rotate([0,0,alpha])
+ difference(){
+  eccentric(thickness, lobe_diff*r_gen, r_rotor_shaft, r_drive_shaft);
+  if (render[3] > 1 )
+  translate([0,0, (5/2 -1 )*thickness])
+    cylinder(r = 0.98 * r_drive_shaft, h = 6*thickness, center = true);
+  }
+
+
 
 // This part places the COVER PLATE =========
-color([0.2, 0.7, 0.4, 0.6])
-translate([0,0, 1.1*thickness/2 + thickness/4])
-cover_plate(n_inner_lobes + lobe_diff, 
-				r_gen,
+if (render[4]>0)
+ color([0.2, 0.7, 0.4, 0.6])
+  translate([0,0, 1.1*thickness/2 + thickness/4])
+   cover_plate(n_inner_lobes + lobe_diff, 
+ 				r_gen,
 				r_offset,
 				r_bolts,
 				1.02*r_drive_shaft,
 				thickness/2);
+                
+        
+// This part places the OUTSIDE ROTOR =========
+if (render[5] > 1 ){
+color([0.7, 0.2, 0.4, 0.6])
+intersection(){
+outside_rotor(n_inner_lobes + lobe_diff, 
+				r_gen,
+				r_offset,
+				r_bolts,
+				driven_shaft_od,
+				1.1*thickness);
+    
+translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset, h = thickness*1.1, center = true);
+}
+}
 
 
-//   End of Speed Reducer Demo Section
-//===========================================
-
-
-//===========================================
-// Generate STL and DXF files
-//
-// This part lays out parts for STL and DXF generation.
-// Uncomment chunks as needed.
-
-//// ===============
-//// These parameters are for a speed reducer with 
-////
-//// 8 : 1 speed ratio
-//// 8 inner lobes
-//// 9 outer lobes
-//// 4 output cam holes
-//
-//n_inner_lobes = 8;
-// lobe_diff = 1;
-//thickness = 8;
-//r_gen = 6;
-//r_offset = 10;
-//r_pins = 5;
-//r_holes = r_pins + lobe_diff*r_gen;
-//n_holes = 4;
-//r_hole_center = 32;
-//r_rotor_shaft = 16;
-//r_bolts = 2;
-//driven_shaft_od = 50;
-//r_drive_shaft = 8;
-//square_side = 10;
-//alpha =  2*360*$t;
-//
-////  ==============
-
-
-
-//// This places DRIVEN SHAFT for DXF
-////
-//projection(cut=true)
-//translate([0,0,thickness])
-//rotate([0,0,-lobe_diff*alpha/n_inner_lobes])
-//color([0,0,1])
-//difference() {
-//driven_shaft(r_pins, n_holes, r_hole_center, thickness, driven_shaft_od, square_side) ;
-//
-//for  ( i = [0:n_holes-1] ) {
-//	rotate([0,0,360/n_holes * i])
-//	translate([r_hole_center,0,0])
-//		cylinder(r = r_bolts, h = 5*thickness, center = true);
-//}
-//}
-
-//// This part places the OUTSIDE ROTOR for DXF
-////
-//projection(cut = true)
-//translate([0,0,thickness])
-//color([1, 0, 0])
-//outside_rotor(n_inner_lobes + lobe_diff, 
-//				r_gen,
-//				r_offset,
-//				r_bolts,
-//				driven_shaft_od,
-//				1.1*thickness);
-
-
-////// This part places the ECCENTRIC for STL=========
-//////
-////translate([0,0,thickness/2])
-////rotate([0,0,alpha])
-////eccentric(thickness, lobe_diff*r_gen, r_rotor_shaft, r_drive_shaft);
-//
-//// This part places the ECCENTRIC for DXF =========
-////
-//projection(cut = true)
-//translate([0,0,-2*thickness])
-//difference(){
-//eccentric(thickness, lobe_diff*r_gen, r_rotor_shaft, r_drive_shaft);
-//cylinder(r = r_bolts, h = 10*thickness, center = true);
-//}
-
-
-//// This part places the INSIDE ROTOR ==========
-////
-//translate([0,0,thickness/2])
-////projection(cut = true)
-//color([0.5, 0.5, 0.3])
-//inside_rotor(n_inner_lobes, 
-//				r_gen,
-//				0.99*r_offset,
-//				r_holes,
-//				n_holes,
-//				r_hole_center,
-//				r_rotor_shaft,
-//				thickness);
-
-//   End of STL and DXF Generation
-//===========================================
-
-
-////===========================================
-//// Pump Demo
-////
-//// This part assembles a pump mechanism as a demo.  
-////
-//
-//n_inner_lobes = 4;
-//thickness = 8;
-//r_gen = 6;
-//r_offset = 3;
-//r_pins = 5;
-//r_holes = r_pins + r_gen;
-//n_holes = 0;
-//r_hole_center = 32;
-//r_rotor_shaft = 5;
-//r_bolts = 0;
-//driven_shaft_od = 50;
-//r_drive_shaft = 8;
-//
-//alpha =360*$t;
-//
-//// Baseline parameters in case you change things and want to get 
-//// back to default demo.
-////
-////n_inner_lobes = 4;
-////thickness = 8;
-////r_gen = 6;
-////r_offset = 3;
-////r_pins = 5;
-////r_holes = r_pins + r_gen;
-////n_holes = 0;
-////r_hole_center = 32;
-////r_rotor_shaft = 5;
-////r_bolts = 0;
-////driven_shaft_od = 50;
-////r_drive_shaft = 8;
-//
-////translate([r_gen*cos(alpha), r_gen*sin(alpha), 0])
-//rotate([0,0,-alpha/n_inner_lobes])
-//color([0.5, 0.5, 0.3])
-//inside_rotor(n_inner_lobes, 
-//				r_gen,
-//				r_offset,
-//				r_holes,
-//				n_holes,
-//				r_hole_center,
-//				r_rotor_shaft,
-//				thickness);
-//
-//color([1, 0, 0])
-//translate([-r_gen, 0, 0])
-//rotate([0,0,-alpha/(n_inner_lobes+1)])
-//outside_rotor(n_inner_lobes + 1, 
-//				r_gen,
-//				r_offset,
-//				driven_shaft_od,
-//				r_bolts,
-//				1.1*thickness);
-//
 //
 ////
 ////   End of Pump Demo
 ////===========================================
+
+
+
+
+
 
 
 //===========================================
@@ -339,6 +222,21 @@ for  ( i = [0:n_pins-1] ) {
 
 }
 //===========================================
+
+module driven_shaft_round(r_pins, n_pins, r_pin_center, thickness, driven_shaft_od, output_shaft_od) {
+translate([0,0,-thickness])
+	difference() {
+	cylinder(r = driven_shaft_od, h = thickness, center = true);
+    cylinder( r=output_shaft_od, h= 1.1*thickness,center=true);
+	}
+color([1,0.2,0.8])
+for  ( i = [0:n_pins-1] ) {
+	rotate([0,0,360/n_pins * i])
+	translate([r_pin_center,0,0])
+		cylinder(r = r_pins, h = thickness, center = true);
+}
+
+}
 
 
 //===========================================
