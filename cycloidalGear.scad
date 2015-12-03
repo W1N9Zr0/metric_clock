@@ -89,7 +89,7 @@ rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
 color([0.5, 0.5, 0.3])
 inside_rotor(n_inner_lobes, 
 				r_gen,
-				0.99*r_offset,
+				r_offset-0.1,
 				r_holes,
 				n_holes,
 				r_hole_center,
