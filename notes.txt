@@ -1,0 +1,14 @@
+shafts
+shaft	loose	tight	tap
+3/16	.188	.179	.135
+7/32	.220	.209
+1/4		.252	.242
+
+laser settings:
+50% speed
+full power
+two passes
+focus 0.1" inside
+
+
+
