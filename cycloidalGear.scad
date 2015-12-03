@@ -39,11 +39,16 @@ driven_shaft_od = 30;
 r_drive_shaft = shaft1; // see above
 output_shaft_od = shaft2; // See above
 square_side = 10;
+output_outside = false;
 
 //  ==============
 r_offset = d_o/(n_inner_lobes);
 r_gen = (d_o - r_offset) / (n_inner_lobes+lobe_diff+1);
 r_rotor_shaft = lobe_diff * r_gen + r_drive_shaft + 2;
+
+output_ratio = output_outside ?
+	(n_inner_lobes + lobe_diff) / lobe_diff:
+	(n_inner_lobes) / lobe_diff;
 
 r_holes = r_pins + lobe_diff*r_gen;
 
@@ -52,7 +57,7 @@ alpha =  2*360*$t;
 
 // This part displays the REDUCTION RATIO ======
 //
-echo(str(n_inner_lobes/lobe_diff, " turns on the input equals 1 turn on the output."));
+echo(str(output_ratio, " turns on the input equals 1 turn on the output."));
 
 
 
@@ -80,7 +85,7 @@ render=[1,1,1,2,1,0]; // normal view
 if (render[0] > 0)
 {
 translate([lobe_diff*r_gen*cos(alpha), lobe_diff* r_gen*sin(alpha), 0])
-rotate([0,0,-lobe_diff*alpha/n_inner_lobes])
+rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
 color([0.5, 0.5, 0.3])
 inside_rotor(n_inner_lobes, 
 				r_gen,
@@ -94,6 +99,7 @@ inside_rotor(n_inner_lobes,
 
 // This part places the OUTSIDE ROTOR =========
 if (render[1] > 0 ){
+rotate([0,0,output_outside ? alpha / output_ratio : 0])
 color([1,0,0])
 difference(){
 outside_rotor(n_inner_lobes + lobe_diff, 
@@ -111,7 +117,7 @@ translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +
 // This part places the DRIVEN SHAFT =========
 //
 if (render[2] > 0 )
- rotate([0,0,-lobe_diff*alpha/n_inner_lobes])
+ rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
   color([0,0,1])
    difference(){
     driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_od, output_shaft_od) ;
