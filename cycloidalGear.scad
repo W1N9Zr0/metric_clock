@@ -28,19 +28,19 @@ shaft1 = 7/32    * 25.4 /2;
 // 11 outer lobes
 // 5 output cam holes
 
-
+d_o = 45;
 n_inner_lobes = 10;
 lobe_diff = 1;
-thickness = 8;
-r_gen = 6;
-r_offset = 10;
-r_pins = 6.35/2; // 1/4"
+thickness = 6.1;
+r_offset = d_o/(n_inner_lobes);
+r_gen = (d_o - r_offset) / (n_inner_lobes+lobe_diff+1);
+r_pins = 3/16*25.4/2; // 1/4"
 r_holes = r_pins + lobe_diff*r_gen;
-n_holes = 5;
-r_hole_center = 32;
+n_holes = 6;
+r_hole_center = 24;
 r_rotor_shaft = 16;
 r_bolts = 2;
-driven_shaft_od = 50;
+driven_shaft_od = 30;
 r_drive_shaft = shaft1; // see above
 output_shaft_od = shaft2; // See above
 square_side = 10;
@@ -62,7 +62,7 @@ render=[1,1,1,2,1,0]; // normal view
 
 //render=[1,2,2,2,0,2]; // panelized view combo...
 //render=[0,0,2,0,0,0]; // panelized view combo...
-
+//render=[2,2,1,0,0,0];
 // 0 = hide
 // 1 = display
 // 2 = solo (modifications)
@@ -462,7 +462,7 @@ union() {
 for  ( i = [0:n-1] ) {
 rotate([0,0, 360/n*i]) {
 
-	linear_extrude(height = thickness)
+	linear_extrude(height = thickness, convexity=3)
 		// the first point in the polygon is moved slightly off the origin
 		 polygon(points= [
 			[-R/20 * cos(360/n/2) , -R/20 * sin(360/n/2)],
