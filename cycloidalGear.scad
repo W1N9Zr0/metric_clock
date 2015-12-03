@@ -11,7 +11,6 @@
 //===========================================
 
 $fn = 80;
-pi = 3.14159265;
 
 // =================
 
@@ -32,21 +31,24 @@ d_o = 45;
 n_inner_lobes = 10;
 lobe_diff = 1;
 thickness = 6.1;
-r_offset = d_o/(n_inner_lobes);
-r_gen = (d_o - r_offset) / (n_inner_lobes+lobe_diff+1);
 r_pins = 3/16*25.4/2; // 1/4"
-r_holes = r_pins + lobe_diff*r_gen;
 n_holes = 6;
 r_hole_center = 24;
-r_rotor_shaft = 16;
 r_bolts = 2;
 driven_shaft_od = 30;
 r_drive_shaft = shaft1; // see above
 output_shaft_od = shaft2; // See above
 square_side = 10;
-alpha =  2*360*$t;
 
 //  ==============
+r_offset = d_o/(n_inner_lobes);
+r_gen = (d_o - r_offset) / (n_inner_lobes+lobe_diff+1);
+r_rotor_shaft = lobe_diff * r_gen + r_drive_shaft + 2;
+
+r_holes = r_pins + lobe_diff*r_gen;
+
+
+alpha =  2*360*$t;
 
 // This part displays the REDUCTION RATIO ======
 //
