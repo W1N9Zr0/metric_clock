@@ -11,13 +11,16 @@
 //===========================================
 
 $fn = 80;
+clearance_m = 0.2;
+clearance_s = 0.1;
 
 // =================
 
 // Based on Igor's rod sizes:
-shaft3= 9/32     * 25.4 /2;
-shaft2 = 1/4     * 25.4 /2;
-shaft1 = 7/32    * 25.4 /2;
+shaft3 = 1/4     * 25.4 /2;
+shaft2 = 7/32    * 25.4 /2;
+shaft1 = 3/16    * 25.4 /2;
+pin_rod =3/16    * 25.4 /2;
 
 // ===============
 // These parameters are for a speed reducer with 
@@ -27,23 +30,21 @@ shaft1 = 7/32    * 25.4 /2;
 // 11 outer lobes
 // 5 output cam holes
 
-d_o = 45;
+r_o = 45;
 n_inner_lobes = 10;
 lobe_diff = 1;
 thickness = 6.1;
-r_pins = 3/16*25.4/2; // 1/4"
-n_holes = 6;
-r_hole_center = 24;
+r_pins = pin_rod;
+n_holes = 4;
 r_bolts = 2;
-driven_shaft_od = 30;
 r_drive_shaft = shaft1; // see above
-output_shaft_od = shaft2; // See above
+output_shaft_or = shaft2; // See above
 square_side = 10;
 output_outside = false;
 
 //  ==============
-r_offset = d_o/(n_inner_lobes);
-r_gen = (d_o - r_offset) / (n_inner_lobes+lobe_diff+1);
+r_offset = r_o/(n_inner_lobes);
+r_gen = (r_o - r_offset) / (n_inner_lobes+lobe_diff+1);
 r_rotor_shaft = lobe_diff * r_gen + r_drive_shaft + 2;
 
 output_ratio = output_outside ?
@@ -51,7 +52,8 @@ output_ratio = output_outside ?
 	(n_inner_lobes) / lobe_diff;
 
 r_holes = r_pins + lobe_diff*r_gen;
-
+r_hole_center = (r_o - r_holes)/2;
+driven_shaft_or = r_hole_center + r_pins * 2;
 
 alpha =  2*360*$t;
 
@@ -106,7 +108,7 @@ outside_rotor(n_inner_lobes + lobe_diff,
 				r_gen,
 				r_offset,
 				r_bolts,
-				driven_shaft_od,
+				driven_shaft_or,
 				1.1*thickness);
   if (render[1] > 1) 
 translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset+1, h = thickness*1.1+0.05, center = true);
@@ -120,11 +122,11 @@ if (render[2] > 0 )
  rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
   color([0,0,1])
    difference(){
-    driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_od, output_shaft_od) ;
+    driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_or, output_shaft_or) ;
    if (render[2] > 1 )
     translate([0,0,-thickness])scale([1,1,2*thickness])difference(){
-      driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_od, output_shaft_od) ;
-      translate([0,0,-thickness]) cylinder(h=thickness,r=driven_shaft_od,center=true);
+      driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_or, output_shaft_or) ;
+      translate([0,0,-thickness]) cylinder(h=thickness,r=driven_shaft_or,center=true);
      }
  }
 
@@ -161,7 +163,7 @@ outside_rotor(n_inner_lobes + lobe_diff,
 				r_gen,
 				r_offset,
 				r_bolts,
-				driven_shaft_od,
+				driven_shaft_or,
 				1.1*thickness);
     
 translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset, h = thickness*1.1, center = true);
@@ -208,10 +210,10 @@ difference() {
 //===========================================
 // Driven Shaft
 //
-module driven_shaft(r_pins, n_pins, r_pin_center, thickness, driven_shaft_od, square_side) {
+module driven_shaft(r_pins, n_pins, r_pin_center, thickness, driven_shaft_or, square_side) {
 translate([0,0,-thickness])
 	difference() {
-	cylinder(r = driven_shaft_od, h = thickness, center = true);
+	cylinder(r = driven_shaft_or, h = thickness, center = true);
 	cube(size=[square_side, square_side, 1.1*thickness], center = true);
 	}
 
@@ -231,11 +233,11 @@ for  ( i = [0:n_pins-1] ) {
 }
 //===========================================
 
-module driven_shaft_round(r_pins, n_pins, r_pin_center, thickness, driven_shaft_od, output_shaft_od) {
+module driven_shaft_round(r_pins, n_pins, r_pin_center, thickness, driven_shaft_or, output_shaft_or) {
 translate([0,0,-thickness])
 	difference() {
-	cylinder(r = driven_shaft_od, h = thickness, center = true);
-    cylinder( r=output_shaft_od, h= 1.1*thickness,center=true);
+	cylinder(r = driven_shaft_or, h = thickness, center = true);
+    cylinder( r=output_shaft_or, h= 1.1*thickness,center=true);
 	}
 color([1,0.2,0.8])
 for  ( i = [0:n_pins-1] ) {
