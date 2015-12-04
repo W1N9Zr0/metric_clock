@@ -13,14 +13,21 @@
 $fn = 80;
 clearance_m = 0.2;
 clearance_s = 0.1;
-
+inch = 25.4;
 // =================
 
 // Based on Igor's rod sizes:
-shaft3 = 1/4     * 25.4 /2;
-shaft2 = 7/32    * 25.4 /2;
-shaft1 = 3/16    * 25.4 /2;
-pin_rod =3/16    * 25.4 /2;
+shaft3 = 1/4     * inch /2;
+shaft3_l = .252  * inch /2;
+shaft3_t = .242  * inch /2;
+shaft2 = 7/32    * inch /2;
+shaft2_l = .220  * inch /2;
+shaft2_t = .209  * inch /2;
+shaft1 = 3/16    * inch /2;
+shaft1_l = .188  * inch /2;
+shaft1_t = .179  * inch /2;
+shaft1_p = .135  * inch /2;
+pin_rod =3/16    * inch /2;
 
 // ===============
 // These parameters are for a speed reducer with 
@@ -37,7 +44,7 @@ lobe_diff = 1;
 thickness = 6.1;
 r_pins = pin_rod;
 n_holes = 4;
-r_bolts = 2;
+r_bolts = shaft1_l;
 r_drive_shaft = shaft1; // see above
 output_shaft_or = shaft2; // See above
 square_side = 10;
