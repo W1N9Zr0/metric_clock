@@ -42,11 +42,14 @@ out_padding = 5;
 n_inner_lobes = 9;
 lobe_diff = 1;
 thickness = 6.1;
-r_pins = pin_rod;
+r_pins_l = pin_rod;
+r_pins_tap = shaft1_p;
 n_holes = 4;
 r_bolts = shaft1_l;
-r_drive_shaft = shaft1; // see above
-output_shaft_or = shaft2; // See above
+r_drive_shaft_t = shaft2_t; // see above
+r_drive_shaft_l = shaft2_l;
+output_shaft_or_t = shaft3_t; // See above
+output_shaft_or_l = shaft3_l;
 square_side = 10;
 output_outside = true;
 square_outside = true;
@@ -54,15 +57,15 @@ square_outside = true;
 //  ==============
 r_offset = r_o/(n_inner_lobes);
 r_gen = (r_o - r_offset) / (n_inner_lobes+lobe_diff+1);
-r_rotor_shaft = lobe_diff * r_gen + r_drive_shaft + 2;
+r_rotor_shaft = lobe_diff * r_gen + r_drive_shaft_l + 2;
 
 output_ratio = output_outside ?
 	(n_inner_lobes + lobe_diff) / lobe_diff:
 	(n_inner_lobes) / lobe_diff;
 
-r_holes = r_pins + lobe_diff*r_gen;
+r_holes = r_pins_l + lobe_diff*r_gen;
 r_hole_center = (r_o - r_holes)/2;
-driven_shaft_or = r_hole_center + r_pins * 2;
+driven_shaft_or = r_hole_center + r_pins_l * 2;
 
 alpha =  2*360*$t;
 
@@ -73,7 +76,7 @@ echo(str(output_ratio, " turns on the input equals 1 turn on the output."));
 
 
 
-render=[1,1,1,1,1,1]; // normal view
+render=[1,1,2,2,1,1]; // normal view
 
 //render=[1,2,0,2,0,0]; // cycloidal drive input section
 //render=[0,0,2,0,0,2]; // output section only
@@ -91,9 +94,8 @@ render=[1,1,1,1,1,1]; // normal view
 // 3  eccentric (s)
 // 4  frnt. cover
 // 5  outside rotor - bottom half. (s)
-
-/////projection(cut = true)
-translate([0,0,0*thickness]) {
+projection(cut = true)
+translate([0,0,2*thickness]) {
 // This part places the INSIDE ROTOR =========
 if (render[0] > 0)
 {
@@ -132,24 +134,17 @@ translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +
 if (render[2] > 0 )
  rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
   color([0,0,1])
-   difference(){
-    driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_or, output_shaft_or) ;
-   if (render[2] > 1 )
-    translate([0,0,-thickness])scale([1,1,2*thickness])difference(){
-      driven_shaft_round(r_pins, n_holes, r_hole_center, thickness, driven_shaft_or, output_shaft_or) ;
-      translate([0,0,-thickness]) cylinder(h=thickness,r=driven_shaft_or,center=true);
-     }
- }
+    driven_shaft_round(n_holes, r_hole_center, thickness, driven_shaft_or) ;
 
 // This part places the ECCENTRIC =========
 //
 if (render[3] > 0)
  rotate([0,0,alpha])
  difference(){
-  eccentric(thickness, lobe_diff*r_gen, r_rotor_shaft, r_drive_shaft);
+  eccentric(thickness, lobe_diff*r_gen, r_rotor_shaft);
   if (render[3] > 1 )
   translate([0,0, (5/2 -1 )*thickness])
-    cylinder(r = 0.98 * r_drive_shaft, h = 6*thickness, center = true);
+    cylinder(r = r_drive_shaft_t, h = 6*thickness, center = true);
   }
 
 
@@ -161,7 +156,7 @@ if (render[4]>0)
  				r_gen,
 				r_offset,
 				r_bolts,
-				r_drive_shaft,
+				r_drive_shaft_l,
 				thickness);
                 
         
@@ -229,7 +224,7 @@ difference() {
 		cylinder(r = side + clearance_m, h = thickness*2.1);
 
 	cylinder(
-		r = (output_outside ? output_shaft_or : r_shaft) + clearance_m,
+		r = output_outside ? output_shaft_or_l : r_shaft + clearance_m,
 		h = 5*thickness,
 		center = true);
 
@@ -246,37 +241,45 @@ difference() {
 //
 //===========================================
 
-module driven_shaft_round(r_pins, n_pins, r_pin_center, thickness, driven_shaft_or, output_shaft_or) {
+module driven_shaft_round(n_pins, r_pin_center, thickness, driven_shaft_or) {
+difference() {
+union() {
 if (output_outside)
 	translate([0,0,thickness])
 		difference() {
 			case_outline(r_o + out_padding);
-			cylinder(r = r_drive_shaft + clearance_m, h = thickness * 2, center=true);
+			cylinder(r = r_drive_shaft_l, h = thickness * 2, center=true);
 			hole_pattern(r_o + out_padding);
 		}
 else
 	translate([0,0,-thickness])
 		difference() {
 			cylinder(r = driven_shaft_or, h = thickness - clearance_m*2, center = true);
-			cylinder( r=output_shaft_or, h= 1.1*thickness,center=true);
+			cylinder( r=output_shaft_or_t, h= 1.1*thickness,center=true);
 	}
 color([1,0.2,0.8])
 for  ( i = [0:n_pins-1] ) {
 	rotate([0,0,360/n_pins * i])
 	translate([r_pin_center,0,0])
-		cylinder(r = r_pins, h = thickness - clearance_m*2, center = true);
+		cylinder(r = r_pins_l, h = thickness - clearance_m*2, center = true);
 }
-
+}
+for  ( i = [0:n_pins-1] ) {
+	rotate([0,0,360/n_pins * i])
+	translate([r_pin_center,0,0])
+		cylinder(r = r_pins_tap, h = thickness *4, center = true);
+}
+}
 }
 
 
 //===========================================
 // Eccentric
 //
-module eccentric(thickness, ecc, rotor_gear_outer_radius, housing_hole_rad){
+module eccentric(thickness, ecc, rotor_gear_outer_radius){
 union(){
 translate([0,0, 5/2*thickness])
-cylinder(r = 0.98 * housing_hole_rad, h = 4*thickness, center = true);
+cylinder(r = r_drive_shaft_t, h = 4*thickness, center = true);
 translate([ecc, 0, 0])
 	cylinder(r = 0.98 * rotor_gear_outer_radius, h = thickness - clearance_m*2, center = true);
 }
@@ -338,7 +341,7 @@ translate([0,0,-thickness]) {
 	difference() {
 		case_outline(side, output_outside);
 
-		cylinder(r = output_outside ? output_shaft_or : r_shaft + clearance_m,
+		cylinder(r = output_outside ? output_shaft_or_t : r_shaft + clearance_m,
 			h = 2*thickness, center = true);
 
 		hole_pattern(side);
