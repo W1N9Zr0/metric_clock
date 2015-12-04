@@ -37,21 +37,21 @@ pin_rod =3/16    * inch /2;
 // 11 outer lobes
 // 5 output cam holes
 
-r_o = 45;
-out_padding = 5;
-n_inner_lobes = 9;
+r_o = 50;
+out_padding = 0;
+n_inner_lobes = 10;
 lobe_diff = 1;
 thickness = 6.1;
 r_pins_l = pin_rod;
 r_pins_tap = shaft1_p;
 n_holes = 4;
 r_bolts = shaft1_l;
-r_drive_shaft_t = shaft2_t; // see above
-r_drive_shaft_l = shaft2_l;
-output_shaft_or_t = shaft3_t; // See above
-output_shaft_or_l = shaft3_l;
+r_drive_shaft_t = shaft3_t; // see above
+r_drive_shaft_l = shaft3_l;
+output_shaft_or_t = shaft2_t; // See above
+output_shaft_or_l = shaft2_l;
 square_side = 10;
-output_outside = true;
+output_outside = false;
 square_outside = true;
 
 //  ==============
@@ -95,7 +95,7 @@ render=[1,1,2,2,1,1]; // normal view
 // 4  frnt. cover
 // 5  outside rotor - bottom half. (s)
 projection(cut = true)
-translate([0,0,2*thickness]) {
+translate([0,0,1*thickness]) {
 // This part places the INSIDE ROTOR =========
 if (render[0] > 0)
 {
