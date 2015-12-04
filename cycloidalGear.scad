@@ -30,8 +30,9 @@ pin_rod =3/16    * 25.4 /2;
 // 11 outer lobes
 // 5 output cam holes
 
-r_o = 50;
-n_inner_lobes = 10;
+r_o = 45;
+out_padding = 5;
+n_inner_lobes = 9;
 lobe_diff = 1;
 thickness = 6.1;
 r_pins = pin_rod;
@@ -40,7 +41,7 @@ r_bolts = 2;
 r_drive_shaft = shaft1; // see above
 output_shaft_or = shaft2; // See above
 square_side = 10;
-output_outside = false;
+output_outside = true;
 square_outside = true;
 
 //  ==============
@@ -147,13 +148,12 @@ if (render[3] > 0)
 // This part places the COVER PLATE =========
 if (render[4]>0)
  color([0.2, 0.7, 0.4, 0.6])
-  translate([0,0, thickness])
    cover_plate(n_inner_lobes + lobe_diff, 
  				r_gen,
 				r_offset,
 				r_bolts,
 				r_drive_shaft,
-				thickness/2);
+				thickness);
                 
         
 // This part places the OUTSIDE ROTOR =========
@@ -179,21 +179,21 @@ translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +
 
 corner_r = 10;
 
-module case_outline(side) {
-	if (square_outside)
+module case_outline(side = r_o, rotates = false, layers = 1) {
+	if (square_outside && !rotates)
 		minkowski() {
-			cube([side*2 - corner_r*2, side*2 - corner_r*2, thickness/2], center = true);
+			cube([side*2 - corner_r*2, side*2 - corner_r*2, thickness*(layers-.5)], center = true);
 			cylinder(r = corner_r, h = thickness/2, center=true);
 		}
 	else
-		cylinder(r = side, h = thickness, center = true);
+		cylinder(r = side, h = thickness*layers, center = true);
 }
 
-module hole_pattern(side) {
+module hole_pattern(side = r_o, layers = 1) {
 	if (square_outside)
 		for (c=[[-1,-1],[1,-1],[1,1],[-1,1]])
 			translate(c * (side - corner_r))
-				cylinder(r = r_bolts, h = 2*thickness, center = true);
+				cylinder(r = r_bolts, h = 2*thickness* layers, center = true);
 
 }
 
@@ -207,15 +207,25 @@ module cover_plate(	n_lobes,
 				r_bolts,
 				r_shaft,
 				thickness) {
+
 side = (n_lobes+1)*r_gen + w_gen;
+translate([0,0, output_outside ? -thickness : thickness])
 difference() {
 	side = (n_lobes+1)*r_gen + w_gen;
 
-	case_outline(side);
+	case_outline(side + out_padding, layers = output_outside ? 3 : 1);
 
-	cylinder(r = r_shaft + clearance_m, h = 2*thickness, center = true);
+	if (output_outside)
+		translate([0,0,-thickness/2])
+		cylinder(r = side + clearance_m, h = thickness*2.1);
 
-	hole_pattern(side);
+	cylinder(
+		r = (output_outside ? output_shaft_or : r_shaft) + clearance_m,
+		h = 5*thickness,
+		center = true);
+
+
+	hole_pattern(side + out_padding, layers = output_outside ? 3 : 1);
 }
 
 }
@@ -225,34 +235,21 @@ difference() {
 //===========================================
 // Driven Shaft
 //
-module driven_shaft(r_pins, n_pins, r_pin_center, thickness, driven_shaft_or, square_side) {
-translate([0,0,-thickness])
-	difference() {
-	cylinder(r = driven_shaft_or, h = thickness, center = true);
-	cube(size=[square_side, square_side, 1.1*thickness], center = true);
-	}
-
-//shaft_length = 2;
-//translate([0,0, -shaft_length/2 -3*thickness/2])
-//	cylinder(r = 1, h = shaft_length, center = true);
-
-color([1,0.2,0.8])
-for  ( i = [0:n_pins-1] ) {
-	rotate([0,0,360/n_pins * i])
-	translate([r_pin_center,0,0])
-		cylinder(r = r_pins, h = thickness, center = true);
-}
-
-
-
-}
 //===========================================
 
 module driven_shaft_round(r_pins, n_pins, r_pin_center, thickness, driven_shaft_or, output_shaft_or) {
-translate([0,0,-thickness])
-	difference() {
-	cylinder(r = driven_shaft_or, h = thickness - clearance_m*2, center = true);
-    cylinder( r=output_shaft_or, h= 1.1*thickness,center=true);
+if (output_outside)
+	translate([0,0,thickness])
+		difference() {
+			case_outline(r_o + out_padding);
+			cylinder(r = r_drive_shaft + clearance_m, h = thickness * 2, center=true);
+			hole_pattern(r_o + out_padding);
+		}
+else
+	translate([0,0,-thickness])
+		difference() {
+			cylinder(r = driven_shaft_or, h = thickness - clearance_m*2, center = true);
+			cylinder( r=output_shaft_or, h= 1.1*thickness,center=true);
 	}
 color([1,0.2,0.8])
 for  ( i = [0:n_pins-1] ) {
@@ -320,7 +317,7 @@ module outside_rotor(	n_lobes,
 				thickness) {
 side = (n_lobes+1)*r_gen + w_gen;
 difference() {
-	case_outline(side);
+	case_outline(side, output_outside);
 
 	translate([0, 0, -thickness])
 		hypotrochoidBandFast(n_lobes, r_gen, 2*thickness, w_gen);
@@ -330,9 +327,10 @@ difference() {
 
 translate([0,0,-thickness]) {
 	difference() {
-		case_outline(side);
+		case_outline(side, output_outside);
 
-		cylinder(r = r_shaft + clearance_m, h = 2*thickness, center = true);
+		cylinder(r = output_outside ? output_shaft_or : r_shaft + clearance_m,
+			h = 2*thickness, center = true);
 
 		hole_pattern(side);
 	}
