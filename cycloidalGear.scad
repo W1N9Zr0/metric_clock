@@ -92,6 +92,8 @@ render=[1,1,1,1,1,1]; // normal view
 // 4  frnt. cover
 // 5  outside rotor - bottom half. (s)
 
+/////projection(cut = true)
+translate([0,0,0*thickness]) {
 // This part places the INSIDE ROTOR =========
 if (render[0] > 0)
 {
@@ -113,7 +115,7 @@ if (render[1] > 0 ){
 rotate([0,0,output_outside ? alpha / output_ratio : 0])
 color([1,0,0])
 difference(){
-outside_rotor(n_inner_lobes + lobe_diff, 
+outside_rotor(n_inner_lobes + lobe_diff,
 				r_gen,
 				r_offset,
 				r_bolts,
@@ -178,7 +180,7 @@ translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +
 }
 }
 
-
+}
 //
 ////
 ////   End of Pump Demo
