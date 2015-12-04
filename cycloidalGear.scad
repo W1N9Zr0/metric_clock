@@ -42,7 +42,6 @@ output_shaft_or = shaft2; // See above
 square_side = 10;
 output_outside = false;
 square_outside = true;
-square_hole_pos = 0.85;
 
 //  ==============
 r_offset = r_o/(n_inner_lobes);
@@ -148,7 +147,7 @@ if (render[3] > 0)
 // This part places the COVER PLATE =========
 if (render[4]>0)
  color([0.2, 0.7, 0.4, 0.6])
-  translate([0,0, thickness/2 + thickness/4])
+  translate([0,0, thickness])
    cover_plate(n_inner_lobes + lobe_diff, 
  				r_gen,
 				r_offset,
@@ -178,9 +177,14 @@ translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +
 ////   End of Pump Demo
 ////===========================================
 
+corner_r = 10;
+
 module case_outline(side) {
 	if (square_outside)
-		cube([side*2, side*2, thickness], center = true);
+		minkowski() {
+			cube([side*2 - corner_r*2, side*2 - corner_r*2, thickness/2], center = true);
+			cylinder(r = corner_r, h = thickness/2, center=true);
+		}
 	else
 		cylinder(r = side, h = thickness, center = true);
 }
@@ -188,13 +192,9 @@ module case_outline(side) {
 module hole_pattern(side) {
 	if (square_outside)
 		for (c=[[-1,-1],[1,-1],[1,1],[-1,1]])
-			translate(c * side * square_hole_pos)
+			translate(c * (side - corner_r))
 				cylinder(r = r_bolts, h = 2*thickness, center = true);
-	else
-		for (i=[0:n_lobes-1])
-			rotate([0,0,360/n_lobes * (i + 0.5)])
-			translate([ (n_lobes+1)*r_gen + w_gen - 4*r_bolts, 0, 0])
-				cylinder(r = r_bolts, h = 2*thickness, center = true);
+
 }
 
 
