@@ -30,7 +30,7 @@ pin_rod =3/16    * 25.4 /2;
 // 11 outer lobes
 // 5 output cam holes
 
-r_o = 45;
+r_o = 50;
 n_inner_lobes = 10;
 lobe_diff = 1;
 thickness = 6.1;
@@ -41,6 +41,8 @@ r_drive_shaft = shaft1; // see above
 output_shaft_or = shaft2; // See above
 square_side = 10;
 output_outside = false;
+square_outside = true;
+square_hole_pos = 0.85;
 
 //  ==============
 r_offset = r_o/(n_inner_lobes);
@@ -64,7 +66,7 @@ echo(str(output_ratio, " turns on the input equals 1 turn on the output."));
 
 
 
-render=[1,1,1,2,1,0]; // normal view
+render=[1,1,1,1,1,1]; // normal view
 
 //render=[1,2,0,2,0,0]; // cycloidal drive input section
 //render=[0,0,2,0,0,2]; // output section only
@@ -91,7 +93,7 @@ rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
 color([0.5, 0.5, 0.3])
 inside_rotor(n_inner_lobes, 
 				r_gen,
-				r_offset-0.1,
+				r_offset-clearance_m,
 				r_holes,
 				n_holes,
 				r_hole_center,
@@ -109,9 +111,9 @@ outside_rotor(n_inner_lobes + lobe_diff,
 				r_offset,
 				r_bolts,
 				driven_shaft_or,
-				1.1*thickness);
+				thickness);
   if (render[1] > 1) 
-translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset+1, h = thickness*1.1+0.05, center = true);
+translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset+1, h = thickness*1.2, center = true);
 }
 
 }
@@ -146,12 +148,12 @@ if (render[3] > 0)
 // This part places the COVER PLATE =========
 if (render[4]>0)
  color([0.2, 0.7, 0.4, 0.6])
-  translate([0,0, 1.1*thickness/2 + thickness/4])
+  translate([0,0, thickness/2 + thickness/4])
    cover_plate(n_inner_lobes + lobe_diff, 
  				r_gen,
 				r_offset,
 				r_bolts,
-				1.02*r_drive_shaft,
+				r_drive_shaft,
 				thickness/2);
                 
         
@@ -164,7 +166,7 @@ outside_rotor(n_inner_lobes + lobe_diff,
 				r_offset,
 				r_bolts,
 				driven_shaft_or,
-				1.1*thickness);
+				thickness);
     
 translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset, h = thickness*1.1, center = true);
 }
@@ -176,10 +178,24 @@ translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +
 ////   End of Pump Demo
 ////===========================================
 
+module case_outline(side) {
+	if (square_outside)
+		cube([side*2, side*2, thickness], center = true);
+	else
+		cylinder(r = side, h = thickness, center = true);
+}
 
-
-
-
+module hole_pattern(side) {
+	if (square_outside)
+		for (c=[[-1,-1],[1,-1],[1,1],[-1,1]])
+			translate(c * side * square_hole_pos)
+				cylinder(r = r_bolts, h = 2*thickness, center = true);
+	else
+		for (i=[0:n_lobes-1])
+			rotate([0,0,360/n_lobes * (i + 0.5)])
+			translate([ (n_lobes+1)*r_gen + w_gen - 4*r_bolts, 0, 0])
+				cylinder(r = r_bolts, h = 2*thickness, center = true);
+}
 
 
 //===========================================
@@ -191,16 +207,15 @@ module cover_plate(	n_lobes,
 				r_bolts,
 				r_shaft,
 				thickness) {
-
+side = (n_lobes+1)*r_gen + w_gen;
 difference() {
-	cylinder(r = (n_lobes+1)*r_gen + w_gen, h = thickness, center = true);
-	cylinder(r = 1.01 * r_shaft, h = 2*thickness, center = true);
-	for (i=[0:n_lobes-1]) {
-		rotate([0,0,360/n_lobes * (i + 0.5)])
-		translate([ (n_lobes+1)*r_gen + w_gen - 4*r_bolts, 0, 0])
-			cylinder(r = r_bolts, h = 2*thickness, center = true);
-}
+	side = (n_lobes+1)*r_gen + w_gen;
 
+	case_outline(side);
+
+	cylinder(r = r_shaft + clearance_m, h = 2*thickness, center = true);
+
+	hole_pattern(side);
 }
 
 }
@@ -236,14 +251,14 @@ for  ( i = [0:n_pins-1] ) {
 module driven_shaft_round(r_pins, n_pins, r_pin_center, thickness, driven_shaft_or, output_shaft_or) {
 translate([0,0,-thickness])
 	difference() {
-	cylinder(r = driven_shaft_or, h = thickness, center = true);
+	cylinder(r = driven_shaft_or, h = thickness - clearance_m*2, center = true);
     cylinder( r=output_shaft_or, h= 1.1*thickness,center=true);
 	}
 color([1,0.2,0.8])
 for  ( i = [0:n_pins-1] ) {
 	rotate([0,0,360/n_pins * i])
 	translate([r_pin_center,0,0])
-		cylinder(r = r_pins, h = thickness, center = true);
+		cylinder(r = r_pins, h = thickness - clearance_m*2, center = true);
 }
 
 }
@@ -257,7 +272,7 @@ union(){
 translate([0,0, 5/2*thickness])
 cylinder(r = 0.98 * housing_hole_rad, h = 4*thickness, center = true);
 translate([ecc, 0, 0])
-	cylinder(r = 0.98 * rotor_gear_outer_radius, h = thickness, center = true);
+	cylinder(r = 0.98 * rotor_gear_outer_radius, h = thickness - clearance_m*2, center = true);
 }
 }
 //===========================================
@@ -276,14 +291,14 @@ module inside_rotor(	n_lobes,
 				thickness) {
 translate([0, 0, -thickness/2])
 difference(){
-
-	hypotrochoidBandFast(n_lobes, r_gen, thickness, w_gen);
+	translate([0,0,clearance_m])
+	hypotrochoidBandFast(n_lobes, r_gen, thickness - clearance_m*2, w_gen);
 	// These are the pins
 	union() {
 		for ( i = [0:n_holes-1] ) {
 			rotate([0, 0, i*360/n_holes])
 			translate([r_hole_center, 0, 0])
-				cylinder(r = r_holes, h = 4*thickness, center = true);
+				cylinder(r = r_holes + clearance_m, h = 4*thickness, center = true);
 		}	
 	}
 	cylinder(r = r_shaft, h = 4*thickness, center = true);
@@ -303,30 +318,27 @@ module outside_rotor(	n_lobes,
 				r_bolts,
 				r_shaft,
 				thickness) {
+side = (n_lobes+1)*r_gen + w_gen;
 difference() {
-	cylinder(r = (n_lobes+1)*r_gen + w_gen, h = thickness, center = true);
+	case_outline(side);
+
 	translate([0, 0, -thickness])
 		hypotrochoidBandFast(n_lobes, r_gen, 2*thickness, w_gen);
-	for (i=[0:n_lobes-1]) {
-		rotate([0,0,360/n_lobes * (i + 0.5)])
-		translate([ (n_lobes+1)*r_gen + w_gen - 4*r_bolts, 0, 0])
-			cylinder(r = r_bolts, h = 2*thickness, center = true);
-}
+
+	hole_pattern(side);
 }
 
 translate([0,0,-thickness]) {
 	difference() {
-		cylinder(r = (n_lobes+1)*r_gen + w_gen, h = thickness, center = true);
-		cylinder(r = 1.01 * r_shaft, h = 2*thickness, center = true);
-		for (i=[0:n_lobes-1]) {
-			rotate([0,0,360/n_lobes * (i + 0.5)])
-			translate([ (n_lobes+1)*r_gen + w_gen - 4*r_bolts, 0, 0])
-				cylinder(r = r_bolts, h = 2*thickness, center = true);
-	}
+		case_outline(side);
+
+		cylinder(r = r_shaft + clearance_m, h = 2*thickness, center = true);
+
+		hole_pattern(side);
 	}
 }
 
-echo(str("The outside diameter of the stator is " ,(n_lobes+1)*r_gen + w_gen));
+echo(str("The outside diameter of the stator is " ,((n_lobes+1)*r_gen + w_gen)*2));
 }
 //===========================================	
 
