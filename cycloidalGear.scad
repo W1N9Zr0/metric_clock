@@ -10,7 +10,10 @@
 //
 //===========================================
 
-$fn = 80;
+//$fn = 80;
+$fs = .1;
+$fa = 360/100;
+
 clearance_m = 0.2;
 clearance_s = 0.1;
 inch = 25.4;
@@ -74,8 +77,6 @@ alpha =  2*360*$t;
 echo(str(output_ratio, " turns on the input equals 1 turn on the output."));
 
 
-
-
 render=[1,1,2,2,1,1]; // normal view
 
 //render=[1,2,0,2,0,0]; // cycloidal drive input section
@@ -94,7 +95,10 @@ render=[1,1,2,2,1,1]; // normal view
 // 3  eccentric (s)
 // 4  frnt. cover
 // 5  outside rotor - bottom half. (s)
-projection(cut = true)
+
+function fn_current(r) = $fn > 0 ? $fn : ceil( max( min(360 / $fa, r*2*PI / $fs), 5) );
+
+////projection(cut = true)
 translate([0,0,1*thickness]) {
 // This part places the INSIDE ROTOR =========
 if (render[0] > 0)
@@ -387,7 +391,7 @@ function hypotrochoid_points(lobes, R, r, offset) =
 	concat(
 		[-R/20 * [cos(360/lobes/2), sin(360/lobes/2)]],
 		[hypotrochoid(0, R, r)],
-		hypo_array(lobes, R, r, offset, 15),
+		hypo_array(lobes, R, r, offset, fn_current(r)/2),
 		[hypotrochoid(360/lobes, R, r)]);
 
 //===========================================
@@ -414,9 +418,8 @@ module hypotrochoidBandFast(n, r, thickness, r_off) {
 	// not blend in to cylinders.  see below for details.  make hideCuspFactor larger to scale up
 	// the cylinders slightly. 1.01 seems to work OK.
 	hideCuspFactor = 1.01;
-
 // Now that we have the points, we make a polygon and extrude it.
-	
+
 union() {
 for  ( i = [0:n-1] ) {
 rotate([0,0, 360/n*i]) {
