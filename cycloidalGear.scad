@@ -10,9 +10,14 @@
 //
 //===========================================
 
+
+function axle_define(loose, tight) = [loose, tight];
+function axle_loose(axle) = axle[0];
+function axle_tight(axle) = axle[1];
+
 //$fn = 80;
-$fs = .1;
-$fa = 360/100;
+//$fs = .1;
+//$fa = 360/100;
 
 clearance_m = 0.2;
 clearance_s = 0.1;
@@ -40,45 +45,9 @@ pin_rod =3/16    * inch /2;
 // 11 outer lobes
 // 5 output cam holes
 
-r_o = 50;
-out_padding = 0;
-n_inner_lobes = 10;
-lobe_diff = 1;
-thickness = 6.1;
-r_pins_l = pin_rod;
-r_pins_tap = shaft1_p;
-n_holes = 4;
-r_bolts = shaft1_l;
-r_drive_shaft_t = shaft3_t; // see above
-r_drive_shaft_l = shaft3_l;
-output_shaft_or_t = shaft2_t; // See above
-output_shaft_or_l = shaft2_l;
-square_side = 10;
-output_outside = false;
-square_outside = true;
+function fn_current(r) = $fn > 0 ? $fn : ceil( max( min(360 / $fa, r*2*PI / $fs), 5) );
 
-//  ==============
-r_offset = r_o/(n_inner_lobes);
-r_gen = (r_o - r_offset) / (n_inner_lobes+lobe_diff+1);
-r_rotor_shaft = lobe_diff * r_gen + r_drive_shaft_l + 2;
-
-output_ratio = output_outside ?
-	(n_inner_lobes + lobe_diff) / lobe_diff:
-	(n_inner_lobes) / lobe_diff;
-
-r_holes = r_pins_l + lobe_diff*r_gen;
-r_hole_center = (r_o - r_holes)/2;
-driven_shaft_or = r_hole_center + r_pins_l * 2;
-
-alpha =  2*360*$t;
-
-// This part displays the REDUCTION RATIO ======
-//
-echo(str(output_ratio, " turns on the input equals 1 turn on the output."));
-
-
-render=[1,1,2,2,1,1]; // normal view
-
+//render=[1,1,1,1,1,1]; // normal view
 //render=[1,2,0,2,0,0]; // cycloidal drive input section
 //render=[0,0,2,0,0,2]; // output section only
 
@@ -96,24 +65,62 @@ render=[1,1,2,2,1,1]; // normal view
 // 4  frnt. cover
 // 5  outside rotor - bottom half. (s)
 
-function fn_current(r) = $fn > 0 ? $fn : ceil( max( min(360 / $fa, r*2*PI / $fs), 5) );
+module cycloidalDrive(
+	n_inner_lobes = 8,
+	lobe_diff = 1,
+	n_holes = 4,
+
+	axle_input = axle_define(loose = 4/2, tight = 3.5/2),
+	axle_output = axle_define(loose = 5/2, tight = 4.5/2),
+	axle_pin = axle_define(loose = 4/2, tight = 3.5/2),
+
+	r_o = 50,
+	out_padding = 0,
+	thickness = 6.1,
+	r_bolts = 1,
+
+	output_outside = false,
+	render = [1,1,1,1,1,1],
+	t_ratio = 1
+) {
+
+//  ==============
+r_offset = r_o/(n_inner_lobes);
+r_gen = (r_o - r_offset) / (n_inner_lobes+lobe_diff+1);
+r_rotor_shaft = lobe_diff * r_gen + axle_loose(axle_input) + 2;
+
+output_ratio = output_outside ?
+	(n_inner_lobes + lobe_diff) / lobe_diff:
+	(n_inner_lobes) / lobe_diff;
+
+r_holes = axle_loose(axle_pin) + lobe_diff*r_gen;
+r_hole_center = (r_o - r_holes)/2;
+driven_shaft_or = r_hole_center + axle_loose(axle_pin) * 2;
+
+alpha =  2*360*$t * t_ratio;
+
+// This part displays the REDUCTION RATIO ======
+//
+echo(str(output_ratio, " turns on the input equals 1 turn on the output."));
+
 
 ////projection(cut = true)
-translate([0,0,1*thickness]) {
+scale([1,1,thickness])
+translate([0,0,1]) {
 // This part places the INSIDE ROTOR =========
 if (render[0] > 0)
 {
 translate([lobe_diff*r_gen*cos(alpha), lobe_diff* r_gen*sin(alpha), 0])
 rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
 color([0.5, 0.5, 0.3])
+scale([1,1, 1 - 2*clearance_m/thickness])
 inside_rotor(n_inner_lobes, 
 				r_gen,
 				r_offset-clearance_m,
 				r_holes,
 				n_holes,
 				r_hole_center,
-				r_rotor_shaft,
-				thickness);
+				r_rotor_shaft);
 }
 
 // This part places the OUTSIDE ROTOR =========
@@ -126,9 +133,10 @@ outside_rotor(n_inner_lobes + lobe_diff,
 				r_offset,
 				r_bolts,
 				driven_shaft_or,
-				thickness);
+				axle_output,
+				output_outside);
   if (render[1] > 1) 
-translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset+1, h = thickness*1.2, center = true);
+translate([0,0,-1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset+1, h = 2, center = true);
 }
 
 }
@@ -138,17 +146,17 @@ translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +
 if (render[2] > 0 )
  rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
   color([0,0,1])
-    driven_shaft_round(n_holes, r_hole_center, thickness, driven_shaft_or) ;
+    driven_shaft_round(n_holes, r_hole_center, driven_shaft_or, r_o, out_padding, output_outside, axle_pin, axle_output, r_bolts) ;
 
 // This part places the ECCENTRIC =========
 //
 if (render[3] > 0)
  rotate([0,0,alpha])
  difference(){
-  eccentric(thickness, lobe_diff*r_gen, r_rotor_shaft);
+  eccentric(lobe_diff*r_gen, r_rotor_shaft, axle_input);
   if (render[3] > 1 )
-  translate([0,0, (5/2 -1 )*thickness])
-    cylinder(r = r_drive_shaft_t, h = 6*thickness, center = true);
+  translate([0,0, 5/2 -1 ])
+    cylinder(r = axle_tight(axle_input)+.01, h = 10, center = true);
   }
 
 
@@ -160,8 +168,9 @@ if (render[4]>0)
  				r_gen,
 				r_offset,
 				r_bolts,
-				r_drive_shaft_l,
-				thickness);
+				output_outside ? axle_output : axle_input,
+				output_outside,
+				out_padding);
                 
         
 // This part places the OUTSIDE ROTOR =========
@@ -173,10 +182,13 @@ outside_rotor(n_inner_lobes + lobe_diff,
 				r_offset,
 				r_bolts,
 				driven_shaft_or,
-				thickness);
+				axle_output,
+				output_outside);
     
-translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset, h = thickness*1.1, center = true);
+translate([0,0,-1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset, h = 3, center = true);
 }
+}
+
 }
 
 }
@@ -187,21 +199,20 @@ translate([0,0,-thickness*1.1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +
 
 corner_r = 10;
 
-module case_outline(side = r_o, rotates = false, layers = 1) {
-	if (square_outside && !rotates)
+module case_outline(side, rotates = false, layers = 1) {
+	if (!rotates)
 		minkowski() {
-			cube([side*2 - corner_r*2, side*2 - corner_r*2, thickness*(layers-.5)], center = true);
-			cylinder(r = corner_r, h = thickness/2, center=true);
+			cube([side*2 - corner_r*2, side*2 - corner_r*2, layers-.5], center = true);
+			cylinder(r = corner_r, h = 1/2, center=true);
 		}
 	else
-		cylinder(r = side, h = thickness*layers, center = true);
+		cylinder(r = side, h = layers, center = true);
 }
 
-module hole_pattern(side = r_o, layers = 1) {
-	if (square_outside)
-		for (c=[[-1,-1],[1,-1],[1,1],[-1,1]])
-			translate(c * (side - corner_r))
-				cylinder(r = r_bolts, h = 2*thickness* layers, center = true);
+module hole_pattern(side, r_bolts, layers = 1) {
+	for (c=[[-1,-1],[1,-1],[1,1],[-1,1]])
+		translate(c * (side - corner_r))
+			cylinder(r = r_bolts, h = 2* layers, center = true);
 
 }
 
@@ -213,27 +224,28 @@ module cover_plate(	n_lobes,
 				r_gen,
 				w_gen,
 				r_bolts,
-				r_shaft,
-				thickness) {
+				axle,
+				output_outside,
+				out_padding) {
 
 side = (n_lobes+1)*r_gen + w_gen;
-translate([0,0, output_outside ? -thickness : thickness])
+translate([0,0, output_outside ? -1 : 1])
 difference() {
 	side = (n_lobes+1)*r_gen + w_gen;
 
 	case_outline(side + out_padding, layers = output_outside ? 3 : 1);
 
 	if (output_outside)
-		translate([0,0,-thickness/2])
-		cylinder(r = side + clearance_m, h = thickness*2.1);
+		translate([0,0,-1/2])
+		cylinder(r = side + clearance_m, h = 2.1);
 
 	cylinder(
-		r = output_outside ? output_shaft_or_l : r_shaft + clearance_m,
-		h = 5*thickness,
+		r = axle_loose(axle),
+		h = 5,
 		center = true);
 
 
-	hole_pattern(side + out_padding, layers = output_outside ? 3 : 1);
+	hole_pattern(side + out_padding, r_bolts, layers = output_outside ? 3 : 1);
 }
 
 }
@@ -245,33 +257,33 @@ difference() {
 //
 //===========================================
 
-module driven_shaft_round(n_pins, r_pin_center, thickness, driven_shaft_or) {
+module driven_shaft_round(n_pins, r_pin_center, driven_shaft_or, r_o, out_padding, output_outside, axle_pin, axle_output, r_bolts) {
 difference() {
 union() {
 if (output_outside)
-	translate([0,0,thickness])
+	translate([0,0,1])
 		difference() {
 			case_outline(r_o + out_padding);
-			cylinder(r = r_drive_shaft_l, h = thickness * 2, center=true);
-			hole_pattern(r_o + out_padding);
+			cylinder(r = axle_loose(axle_output), h = 2, center=true);
+			hole_pattern(r_o + out_padding, r_bolts);
 		}
 else
-	translate([0,0,-thickness])
+	translate([0,0,-1])
 		difference() {
-			cylinder(r = driven_shaft_or, h = thickness - clearance_m*2, center = true);
-			cylinder( r=output_shaft_or_t, h= 1.1*thickness,center=true);
-	}
+			cylinder(r = driven_shaft_or, h = 1, center = true);
+			translate([0,0,-1])cylinder(r = axle_tight(axle_output), h= 3, center=true);
+		}
 color([1,0.2,0.8])
 for  ( i = [0:n_pins-1] ) {
 	rotate([0,0,360/n_pins * i])
 	translate([r_pin_center,0,0])
-		cylinder(r = r_pins_l, h = thickness - clearance_m*2, center = true);
+		cylinder(r = axle_loose(axle_pin), h = 1, center = true);
 }
 }
 for  ( i = [0:n_pins-1] ) {
 	rotate([0,0,360/n_pins * i])
 	translate([r_pin_center,0,0])
-		cylinder(r = r_pins_tap, h = thickness *4, center = true);
+		cylinder(r = axle_tight(axle_pin), h = 4, center = true);
 }
 }
 }
@@ -280,12 +292,12 @@ for  ( i = [0:n_pins-1] ) {
 //===========================================
 // Eccentric
 //
-module eccentric(thickness, ecc, rotor_gear_outer_radius){
+module eccentric(ecc, rotor_gear_outer_radius, axle_input){
 union(){
-translate([0,0, 5/2*thickness])
-cylinder(r = r_drive_shaft_t, h = 4*thickness, center = true);
+translate([0,0, 5/2])
+cylinder(r = axle_tight(axle_input), h = 4, center = true);
 translate([ecc, 0, 0])
-	cylinder(r = 0.98 * rotor_gear_outer_radius, h = thickness - clearance_m*2, center = true);
+	cylinder(r = 0.98 * rotor_gear_outer_radius, h = 1, center = true);
 }
 }
 //===========================================
@@ -300,21 +312,19 @@ module inside_rotor(	n_lobes,
 				r_holes,
 				n_holes,
 				r_hole_center,
-				r_shaft,
-				thickness) {
-translate([0, 0, -thickness/2])
+				r_shaft) {
+translate([0, 0, -1/2])
 difference(){
-	translate([0,0,clearance_m])
-	hypotrochoidBandFast(n_lobes, r_gen, thickness - clearance_m*2, w_gen);
+	hypotrochoidBandFast(n_lobes, r_gen, w_gen);
 	// These are the pins
 	union() {
 		for ( i = [0:n_holes-1] ) {
 			rotate([0, 0, i*360/n_holes])
 			translate([r_hole_center, 0, 0])
-				cylinder(r = r_holes + clearance_m, h = 4*thickness, center = true);
+				cylinder(r = r_holes + clearance_m, h = 4, center = true);
 		}	
 	}
-	cylinder(r = r_shaft, h = 4*thickness, center = true);
+	cylinder(r = r_shaft, h = 4, center = true);
 
 }
 
@@ -330,25 +340,26 @@ module outside_rotor(	n_lobes,
 				w_gen,
 				r_bolts,
 				r_shaft,
-				thickness) {
+				axle_output,
+				output_outside) {
 side = (n_lobes+1)*r_gen + w_gen;
 difference() {
 	case_outline(side, output_outside);
 
-	translate([0, 0, -thickness])
-		hypotrochoidBandFast(n_lobes, r_gen, 2*thickness, w_gen);
+	translate([0, 0, -1]) scale([1,1,2])
+		hypotrochoidBandFast(n_lobes, r_gen, w_gen);
 
-	hole_pattern(side);
+	hole_pattern(side, r_bolts);
 }
 
-translate([0,0,-thickness]) {
+translate([0,0,-1]) {
 	difference() {
 		case_outline(side, output_outside);
 
-		cylinder(r = output_outside ? output_shaft_or_t : r_shaft + clearance_m,
-			h = 2*thickness, center = true);
+		cylinder(r = output_outside ? axle_tight(axle_output) : r_shaft + clearance_m,
+			h = 2, center = true);
 
-		hole_pattern(side);
+		hole_pattern(side, r_bolts);
 	}
 }
 
@@ -402,7 +413,6 @@ function hypotrochoid_points(lobes, R, r, offset) =
 //
 // n 		is the number of lobes
 // r		is the radius of the little rolling circle that generates the hypocycloid
-// thickness 	is the height of extrusion
 // r_off 	is the distance that the envelope is offset from the base hypocycloid
 // 
 // When r_off = zero the output is the same as a hypocycloid.
@@ -410,7 +420,7 @@ function hypotrochoid_points(lobes, R, r, offset) =
 // As far as I know, OpenSCAD does not do arrays, hence the funny big blocks of
 // hardcoded numbers you will see below.
 //
-module hypotrochoidBandFast(n, r, thickness, r_off) {
+module hypotrochoidBandFast(n, r, r_off) {
 
 	R = r*n;
 
@@ -424,7 +434,7 @@ union() {
 for  ( i = [0:n-1] ) {
 rotate([0,0, 360/n*i]) {
 
-	linear_extrude(height = thickness, convexity=3)
+	linear_extrude(height = 1, convexity=3)
 		// the first point in the polygon is moved slightly off the origin
 		 polygon(points = hypotrochoid_points(n, R, r, r_off));
 
@@ -435,8 +445,8 @@ rotate([0,0, 360/n*i]) {
 	// blend together perfectly (I think), but this workaround is needed because
 	// we are only using piecewise linear approximations to these curves.
 	hypoStart = hypotrochoid(0, R, r);
-	translate( [hypoStart[0], hypoStart[1], thickness/2])
-		cylinder(r = hideCuspFactor*r_off, h = thickness, center = true);
+	translate( [hypoStart[0], hypoStart[1], 1/2])
+		cylinder(r = hideCuspFactor*r_off, h = 1, center = true);
 	
 } //end rotate
 
@@ -447,3 +457,4 @@ rotate([0,0, 360/n*i]) {
 } // end module hypotrochoidBandFast
 //=========================================== 
 
+cycloidalDrive();
