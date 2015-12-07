@@ -51,9 +51,9 @@ module cycloidalDrive(
 ) {
 
 //  ==============
-r_offset = r_o/(n_inner_lobes);
-r_gen = (r_o - r_offset) / (n_inner_lobes+lobe_diff+1);
-eccentric_offset = lobe_diff * r_gen;
+hypo_offset = r_o/(n_inner_lobes);
+hypo_r = (r_o - hypo_offset) / (n_inner_lobes+lobe_diff+1);
+eccentric_offset = lobe_diff * hypo_r;
 eccentric_r = eccentric_offset + axle_loose(axle_input) + 2;
 
 output_ratio = output_outside ?
@@ -80,8 +80,8 @@ rotate(output_outside ? 0 : alpha / -output_ratio)
 color([0.5, 0.5, 0.3])
 scale([1,1, 1 - 2*$clearance_m/thickness])
 inside_rotor(n_inner_lobes, 
-				r_gen,
-				r_offset-$clearance_m,
+				hypo_r,
+				hypo_offset - $clearance_m,
 				r_holes,
 				n_holes,
 				r_hole_center,
@@ -94,8 +94,8 @@ rotate(output_outside ? alpha / output_ratio : 0)
 color([1,0,0])
 difference(){
 outside_rotor(n_inner_lobes + lobe_diff,
-				r_gen,
-				r_offset,
+				hypo_r,
+				hypo_offset,
 				r_bolts,
 				pin_plate_r,
 				axle_output,
@@ -214,8 +214,8 @@ else
 			cylinder(r = axle_loose(axle_pin), h = 1, center = true);
 
 }
-		pin_pattern(n_pins, r_pin_center)
-			cylinder(r = axle_tight(axle_pin), h = 4, center = true);
+	pin_pattern(n_pins, r_pin_center)
+		cylinder(r = axle_tight(axle_pin), h = 4, center = true);
 }
 }
 
@@ -238,15 +238,15 @@ translate([ecc, 0, 0])
 // Inside Rotor
 //
 module inside_rotor(	n_lobes, 
-				r_gen,
-				w_gen,
+				hypo_r,
+				hypo_offset,
 				r_holes,
 				n_pins,
 				r_pin_center,
 				r_eccentric) {
 translate([0, 0, -1/2])
 difference(){
-	hypotrochoidBandFast(n_lobes, r_gen, w_gen);
+	hypotrochoidBandFast(n_lobes, hypo_r, hypo_offset);
 	// These are the pins
 	pin_pattern(n_pins, r_pin_center)
 		cylinder(r = r_holes + $clearance_m, h = 4, center = true);
@@ -261,13 +261,13 @@ difference(){
 // Outside Rotor
 //
 module outside_rotor(	n_lobes, 
-				r_gen,
-				w_gen,
+				hypo_r,
+				hypo_offset,
 				r_bolts,
 				r_output_plate,
 				axle_output,
 				output_outside) {
-side = (n_lobes+1)*r_gen + w_gen;
+side = (n_lobes+1)*hypo_r + hypo_offset;
 difference() {
 	if (output_outside)
 		cylinder(r = side, h = 1, center = true);
@@ -275,7 +275,7 @@ difference() {
 		case_outline(side, r_bolts);
 
 	translate([0, 0, -1]) scale([1,1,2])
-		hypotrochoidBandFast(n_lobes, r_gen, w_gen);
+		hypotrochoidBandFast(n_lobes, hypo_r, hypo_offset);
 }
 
 translate([0,0,-1]) {
@@ -290,7 +290,7 @@ translate([0,0,-1]) {
 	}
 }
 
-echo(str("The outside diameter of the stator is " ,((n_lobes+1)*r_gen + w_gen)*2));
+echo(str("The outside diameter of the stator is " ,((n_lobes+1)*hypo_r + hypo_offset)*2));
 }
 //===========================================	
 
