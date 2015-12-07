@@ -72,20 +72,20 @@ echo(str(output_ratio, " turns on the input equals 1 turn on the output."));
 
 
 scale([1,1,thickness]) {
+
 // This part places the INSIDE ROTOR =========
-if (render[0] > 0)
+if (render[0] > 0) color([0.5, 0.5, 0.3])
 {
-translate(eccentric_offset * [cos(alpha), sin(alpha)])
-rotate(output_outside ? 0 : alpha / -output_ratio)
-color([0.5, 0.5, 0.3])
-scale([1,1, 1 - 2*$clearance_m/thickness])
-inside_rotor(n_inner_lobes, 
-				hypo_r,
-				hypo_offset - $clearance_m,
-				r_holes,
-				n_holes,
-				r_hole_center,
-				eccentric_r + $clearance_m);
+	translate(eccentric_offset * [cos(alpha), sin(alpha)])
+	rotate(output_outside ? 0 : alpha / -output_ratio)
+	scale([1,1, 1 - 2*$clearance_m/thickness])
+	inside_rotor(n_inner_lobes,
+					hypo_r,
+					hypo_offset - $clearance_m,
+					r_holes,
+					n_holes,
+					r_hole_center,
+					eccentric_r + $clearance_m);
 }
 
 // This part places the OUTSIDE ROTOR =========
