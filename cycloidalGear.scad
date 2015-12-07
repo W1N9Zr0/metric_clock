@@ -145,14 +145,11 @@ if (render[4]>0)
 
 corner_r = 10;
 
-module case_outline(side, rotates = false, layers = 1) {
-	if (!rotates)
-		minkowski() {
-			cube([side*2 - corner_r*2, side*2 - corner_r*2, layers-.5], center = true);
-			cylinder(r = corner_r, h = 1/2, center=true);
-		}
-	else
-		cylinder(r = side, h = layers, center = true);
+module case_outline(side, layers = 1) {
+	minkowski() {
+		cube([side*2 - corner_r*2, side*2 - corner_r*2, layers-.5], center = true);
+		cylinder(r = corner_r, h = 1/2, center=true);
+	}
 }
 
 module hole_pattern(side, r_bolts, layers = 1) {
@@ -286,7 +283,10 @@ module outside_rotor(	n_lobes,
 				output_outside) {
 side = (n_lobes+1)*r_gen + w_gen;
 difference() {
-	case_outline(side, output_outside);
+	if (output_outside)
+		cylinder(r = side, h = 1, center = true);
+	else
+		case_outline(side);
 
 	translate([0, 0, -1]) scale([1,1,2])
 		hypotrochoidBandFast(n_lobes, r_gen, w_gen);
@@ -296,7 +296,10 @@ difference() {
 
 translate([0,0,-1]) {
 	difference() {
-		case_outline(side, output_outside);
+		if (output_outside)
+			cylinder(r = side, h = 1, center = true);
+		else
+			case_outline(side);
 
 		cylinder(r = output_outside ? axle_tight(axle_output) : r_shaft + $clearance_m,
 			h = 2, center = true);
