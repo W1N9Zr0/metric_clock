@@ -88,6 +88,37 @@ if (render[0] > 0) color([0.5, 0.5, 0.3])
 					eccentric_r + $clearance_m);
 }
 
+
+// This part places the pins =========
+if (render[2] > 0 ) color([0,0,1]) {
+	rotate(output_outside ? 0 : alpha / -output_ratio)
+	difference() {
+		union() {
+			if (render[2] < 2) // render pins
+				translate([0,0,output_outside ? 1 : -1] * $clearance_m/thickness)
+				pin_pattern(n_holes, r_hole_center)
+				cylinder(r = axle_loose(axle_pin), h = 1, center = true);
+
+			if (output_outside) {
+				// stationary pin plate above
+				translate([0,0,1]) difference() {
+					case_outline(r_o + out_padding, r_bolts);
+					cylinder(r = axle_loose(axle_output), h = 2, center=true);
+				}
+			} else {
+				// moving pin plate below
+				translate([0,0,-1]) difference() {
+					cylinder(r = pin_plate_r, h = 1 - 2 * $clearance_m/thickness, center = true);
+					cylinder(r = axle_tight(axle_output), h= 3, center=true);
+				}
+			}
+		}
+		if (render[2] >= 2) // render holes for pins
+			pin_pattern(n_holes, r_hole_center)
+			cylinder(r = axle_tight(axle_pin), h = 4, center = true);
+	}
+}
+
 // This part places the OUTSIDE ROTOR =========
 if (render[1] > 0 ){
 rotate(output_outside ? alpha / output_ratio : 0)
@@ -105,13 +136,6 @@ translate([0,0,-1])	cylinder(r = r_o+1, h = 2, center = true);
 }
 
 }
-
-// This part places the DRIVEN SHAFT =========
-//
-if (render[2] > 0 )
- rotate(output_outside ? 0 : alpha / -output_ratio)
-  color([0,0,1])
-    driven_shaft_round(n_holes, r_hole_center, pin_plate_r, r_o, out_padding, output_outside, axle_pin, axle_output, r_bolts) ;
 
 // This part places the ECCENTRIC =========
 //
@@ -187,36 +211,6 @@ difference() {
 module pin_pattern(n_pins, r_pin_center) {
 	for (i = [0 : n_pins-1]) rotate(i/n_pins * 360)
 		translate([r_pin_center,0]) children();
-}
-
-//===========================================
-// Driven Shaft
-//
-//===========================================
-
-module driven_shaft_round(n_pins, r_pin_center, pin_plate_r, r_o, out_padding, output_outside, axle_pin, axle_output, r_bolts) {
-difference() {
-union() {
-if (output_outside)
-	translate([0,0,1])
-		difference() {
-			case_outline(r_o + out_padding, r_bolts);
-			cylinder(r = axle_loose(axle_output), h = 2, center=true);
-		}
-else
-	translate([0,0,-1])
-		difference() {
-			cylinder(r = pin_plate_r, h = 1, center = true);
-			translate([0,0,-1])cylinder(r = axle_tight(axle_output), h= 3, center=true);
-		}
-
-		pin_pattern(n_pins, r_pin_center)
-			cylinder(r = axle_loose(axle_pin), h = 1, center = true);
-
-}
-	pin_pattern(n_pins, r_pin_center)
-		cylinder(r = axle_tight(axle_pin), h = 4, center = true);
-}
 }
 
 
