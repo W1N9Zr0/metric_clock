@@ -18,13 +18,13 @@ size = 50;
 $clearance_m = .2;
 
 //$fn = 80;
-//$fs = .1;
+$fs = .1;
 //$fa = 360/100;
 
-layer_n = 0 ;
+layer_n = 0;
 
 //projection(cut = true)
-translate([0, 0, (layer_n - 2) * thickness]) {
+translate([0, 0, (layer_n - 1) * thickness]) {
 
 // seconds to 10s of seconds
 cycloidalDrive(
@@ -43,13 +43,13 @@ cycloidalDrive(
 
 	output_outside = false,
 
-	//render = [1,1,2,1,1,1],
-	render = [1,1,2,2,1,1],
+	//render = [1,1,2,1,1],
+	render = [1,1,2,2,1],
 	t_ratio = 100
 	);
 
 // 10s of seconds to minutes
-translate([0,0,-thickness * (2)])
+translate([0,0,-thickness * (2)*2])
 cycloidalDrive(
 	n_inner_lobes = 10,
 	lobe_diff = 1,
@@ -66,12 +66,12 @@ cycloidalDrive(
 
 	output_outside = false,
 
-	//render = [1,0,2,2,0,1],
-	render = [1,1,2,2,0,1],
+	//render = [1,0,2,2,0],
+	render = [1,1,2,2,0],
 	t_ratio = -10);
 
 // minutes to hours
-translate([0,0,-thickness * (2+3)])
+translate([0,0,-thickness * (2+3)*2])
 cycloidalDrive(
 	n_inner_lobes = 9,
 	lobe_diff = 1,
@@ -87,7 +87,7 @@ cycloidalDrive(
 	r_bolts = axle_loose(tube_3_16),
 
 	output_outside = true,
-	//render = [1,1,2,2,0,1],
-	render = [1,1,2,2,1,1],
+	//render = [1,1,2,2,0],
+	render = [1,1,2,2,1],
 	t_ratio = 1);
 }

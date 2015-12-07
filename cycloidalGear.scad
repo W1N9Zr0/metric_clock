@@ -19,23 +19,17 @@ $clearance_m = $clearance_m ? $clearance_m : 0.2;
 
 function fn_current(r) = $fn > 0 ? $fn : ceil( max( min(360 / $fa, r*2*PI / $fs), 5) );
 
-//render=[1,1,1,1,1,1]; // normal view
-//render=[1,2,0,2,0,0]; // cycloidal drive input section
-//render=[0,0,2,0,0,2]; // output section only
-
-//render=[1,2,2,2,0,2]; // panelized view combo...
-//render=[0,0,2,0,0,0]; // panelized view combo...
-//render=[2,2,1,0,0,0];
-// 0 = hide
-// 1 = display
-// 2 = solo (modifications)
-
+// render array index
 // 0  Inside Rotor
 // 1  Outside Rotor (s - top half)
 // 2  driven shaft (s)
 // 3  eccentric (s)
 // 4  frnt. cover
-// 5  outside rotor - bottom half. (s)
+
+// render array value
+// 0 = hide
+// 1 = display
+// 2 = solo (modifications)
 
 module cycloidalDrive(
 	n_inner_lobes = 8,
@@ -52,22 +46,23 @@ module cycloidalDrive(
 	r_bolts = 1,
 
 	output_outside = false,
-	render = [1,1,1,1,1,1],
+	render = [1,1,1,1,1],
 	t_ratio = 1
 ) {
 
 //  ==============
 r_offset = r_o/(n_inner_lobes);
 r_gen = (r_o - r_offset) / (n_inner_lobes+lobe_diff+1);
-r_rotor_shaft = lobe_diff * r_gen + axle_loose(axle_input) + 2;
+eccentric_offset = lobe_diff * r_gen;
+r_rotor_shaft = eccentric_offset + axle_loose(axle_input) + 2;
 
 output_ratio = output_outside ?
 	(n_inner_lobes + lobe_diff) / lobe_diff:
 	(n_inner_lobes) / lobe_diff;
 
-r_holes = axle_loose(axle_pin) + lobe_diff*r_gen;
+r_holes = eccentric_offset + axle_loose(axle_pin);
 r_hole_center = (r_o - r_holes)/2;
-driven_shaft_or = r_hole_center + axle_loose(axle_pin) * 2;
+pin_plate_r = r_hole_center + axle_loose(axle_pin) * 2;
 
 alpha =  2*360*$t * t_ratio;
 
@@ -76,14 +71,12 @@ alpha =  2*360*$t * t_ratio;
 echo(str(output_ratio, " turns on the input equals 1 turn on the output."));
 
 
-////projection(cut = true)
-scale([1,1,thickness])
-translate([0,0,1]) {
+scale([1,1,thickness]) {
 // This part places the INSIDE ROTOR =========
 if (render[0] > 0)
 {
-translate([lobe_diff*r_gen*cos(alpha), lobe_diff* r_gen*sin(alpha), 0])
-rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
+translate(eccentric_offset * [cos(alpha), sin(alpha)])
+rotate(output_outside ? 0 : alpha / -output_ratio)
 color([0.5, 0.5, 0.3])
 scale([1,1, 1 - 2*$clearance_m/thickness])
 inside_rotor(n_inner_lobes, 
@@ -92,23 +85,23 @@ inside_rotor(n_inner_lobes,
 				r_holes,
 				n_holes,
 				r_hole_center,
-				r_rotor_shaft);
+				r_rotor_shaft + $clearance_m);
 }
 
 // This part places the OUTSIDE ROTOR =========
 if (render[1] > 0 ){
-rotate([0,0,output_outside ? alpha / output_ratio : 0])
+rotate(output_outside ? alpha / output_ratio : 0)
 color([1,0,0])
 difference(){
 outside_rotor(n_inner_lobes + lobe_diff,
 				r_gen,
 				r_offset,
 				r_bolts,
-				driven_shaft_or,
+				pin_plate_r,
 				axle_output,
 				output_outside);
   if (render[1] > 1) 
-translate([0,0,-1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset+1, h = 2, center = true);
+translate([0,0,-1])	cylinder(r = r_o+1, h = 2, center = true);
 }
 
 }
@@ -116,16 +109,16 @@ translate([0,0,-1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset+1, 
 // This part places the DRIVEN SHAFT =========
 //
 if (render[2] > 0 )
- rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
+ rotate(output_outside ? 0 : alpha / -output_ratio)
   color([0,0,1])
-    driven_shaft_round(n_holes, r_hole_center, driven_shaft_or, r_o, out_padding, output_outside, axle_pin, axle_output, r_bolts) ;
+    driven_shaft_round(n_holes, r_hole_center, pin_plate_r, r_o, out_padding, output_outside, axle_pin, axle_output, r_bolts) ;
 
 // This part places the ECCENTRIC =========
 //
 if (render[3] > 0)
  rotate([0,0,alpha])
  difference(){
-  eccentric(lobe_diff*r_gen, r_rotor_shaft, axle_input);
+  eccentric(eccentric_offset, r_rotor_shaft, axle_input);
   if (render[3] > 1 )
   translate([0,0, 5/2 -1 ])
     cylinder(r = axle_tight(axle_input)+.01, h = 10, center = true);
@@ -136,30 +129,11 @@ if (render[3] > 0)
 // This part places the COVER PLATE =========
 if (render[4]>0)
  color([0.2, 0.7, 0.4, 0.6])
-   cover_plate(n_inner_lobes + lobe_diff, 
- 				r_gen,
-				r_offset,
+   cover_plate(r_o,
 				r_bolts,
 				output_outside ? axle_output : axle_input,
 				output_outside,
 				out_padding);
-                
-        
-// This part places the OUTSIDE ROTOR =========
-if (render[5] > 1 ){
-color([0.7, 0.2, 0.4, 0.6])
-intersection(){
-outside_rotor(n_inner_lobes + lobe_diff, 
-				r_gen,
-				r_offset,
-				r_bolts,
-				driven_shaft_or,
-				axle_output,
-				output_outside);
-    
-translate([0,0,-1])	cylinder(r = (n_inner_lobes+lobe_diff+1)*r_gen +r_offset, h = 3, center = true);
-}
-}
 
 }
 
@@ -182,8 +156,8 @@ module case_outline(side, rotates = false, layers = 1) {
 }
 
 module hole_pattern(side, r_bolts, layers = 1) {
-	for (c=[[-1,-1],[1,-1],[1,1],[-1,1]])
-		translate(c * (side - corner_r))
+	for (x=[-1,1], y=[-1,1])
+		translate([x,y] * (side - corner_r))
 			cylinder(r = r_bolts, h = 2* layers, center = true);
 
 }
@@ -192,24 +166,20 @@ module hole_pattern(side, r_bolts, layers = 1) {
 //===========================================
 // Cover Plate
 //
-module cover_plate(	n_lobes, 
-				r_gen,
-				w_gen,
+module cover_plate(	r_o,
 				r_bolts,
 				axle,
 				output_outside,
 				out_padding) {
 
-side = (n_lobes+1)*r_gen + w_gen;
 translate([0,0, output_outside ? -1 : 1])
 difference() {
-	side = (n_lobes+1)*r_gen + w_gen;
 
-	case_outline(side + out_padding, layers = output_outside ? 3 : 1);
+	case_outline(r_o + out_padding, layers = output_outside ? 3 : 1);
 
 	if (output_outside)
 		translate([0,0,-1/2])
-		cylinder(r = side + $clearance_m, h = 2.1);
+		cylinder(r = r_o + $clearance_m, h = 2.1);
 
 	cylinder(
 		r = axle_loose(axle),
@@ -217,7 +187,7 @@ difference() {
 		center = true);
 
 
-	hole_pattern(side + out_padding, r_bolts, layers = output_outside ? 3 : 1);
+	hole_pattern(r_o + out_padding, r_bolts, layers = output_outside ? 3 : 1);
 }
 
 }
@@ -229,7 +199,7 @@ difference() {
 //
 //===========================================
 
-module driven_shaft_round(n_pins, r_pin_center, driven_shaft_or, r_o, out_padding, output_outside, axle_pin, axle_output, r_bolts) {
+module driven_shaft_round(n_pins, r_pin_center, pin_plate_r, r_o, out_padding, output_outside, axle_pin, axle_output, r_bolts) {
 difference() {
 union() {
 if (output_outside)
@@ -242,7 +212,7 @@ if (output_outside)
 else
 	translate([0,0,-1])
 		difference() {
-			cylinder(r = driven_shaft_or, h = 1, center = true);
+			cylinder(r = pin_plate_r, h = 1, center = true);
 			translate([0,0,-1])cylinder(r = axle_tight(axle_output), h= 3, center=true);
 		}
 color([1,0.2,0.8])
@@ -269,7 +239,7 @@ union(){
 translate([0,0, 5/2])
 cylinder(r = axle_tight(axle_input), h = 4, center = true);
 translate([ecc, 0, 0])
-	cylinder(r = 0.98 * rotor_gear_outer_radius, h = 1, center = true);
+	cylinder(r = rotor_gear_outer_radius, h = 1, center = true);
 }
 }
 //===========================================
