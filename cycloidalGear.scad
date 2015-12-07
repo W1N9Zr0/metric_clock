@@ -144,8 +144,8 @@ if (render[3] > 0) {
 			translate([eccentric_offset, 0, 0])
 				cylinder(r = eccentric_r, h = 1, center = true);
 			if (render[3] < 2)
-				translate([0,0, 5/2])
-				cylinder(r = axle_tight(axle_input), h = 4, center = true);
+				translate([0,0,.5])
+				cylinder(r = axle_tight(axle_input), h = 2-2*$clearance_m/thickness, center = true);
 		}
 		if (render[3] > 1 )
 			cylinder(r = axle_tight(axle_input), h = 3, center = true);
