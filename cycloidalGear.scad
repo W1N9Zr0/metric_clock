@@ -15,35 +15,7 @@ function axle_define(loose, tight) = [loose, tight];
 function axle_loose(axle) = axle[0];
 function axle_tight(axle) = axle[1];
 
-//$fn = 80;
-//$fs = .1;
-//$fa = 360/100;
-
-clearance_m = 0.2;
-clearance_s = 0.1;
-inch = 25.4;
-// =================
-
-// Based on Igor's rod sizes:
-shaft3 = 1/4     * inch /2;
-shaft3_l = .252  * inch /2;
-shaft3_t = .242  * inch /2;
-shaft2 = 7/32    * inch /2;
-shaft2_l = .220  * inch /2;
-shaft2_t = .209  * inch /2;
-shaft1 = 3/16    * inch /2;
-shaft1_l = .188  * inch /2;
-shaft1_t = .179  * inch /2;
-shaft1_p = .135  * inch /2;
-pin_rod =3/16    * inch /2;
-
-// ===============
-// These parameters are for a speed reducer with 
-//
-// 10 : 1 speed ratio
-// 10 inner lobes
-// 11 outer lobes
-// 5 output cam holes
+$clearance_m = $clearance_m ? $clearance_m : 0.2;
 
 function fn_current(r) = $fn > 0 ? $fn : ceil( max( min(360 / $fa, r*2*PI / $fs), 5) );
 
@@ -113,10 +85,10 @@ if (render[0] > 0)
 translate([lobe_diff*r_gen*cos(alpha), lobe_diff* r_gen*sin(alpha), 0])
 rotate([0,0,output_outside ? 0 : alpha / -output_ratio])
 color([0.5, 0.5, 0.3])
-scale([1,1, 1 - 2*clearance_m/thickness])
+scale([1,1, 1 - 2*$clearance_m/thickness])
 inside_rotor(n_inner_lobes, 
 				r_gen,
-				r_offset-clearance_m,
+				r_offset-$clearance_m,
 				r_holes,
 				n_holes,
 				r_hole_center,
@@ -237,7 +209,7 @@ difference() {
 
 	if (output_outside)
 		translate([0,0,-1/2])
-		cylinder(r = side + clearance_m, h = 2.1);
+		cylinder(r = side + $clearance_m, h = 2.1);
 
 	cylinder(
 		r = axle_loose(axle),
@@ -321,7 +293,7 @@ difference(){
 		for ( i = [0:n_holes-1] ) {
 			rotate([0, 0, i*360/n_holes])
 			translate([r_hole_center, 0, 0])
-				cylinder(r = r_holes + clearance_m, h = 4, center = true);
+				cylinder(r = r_holes + $clearance_m, h = 4, center = true);
 		}	
 	}
 	cylinder(r = r_shaft, h = 4, center = true);
@@ -356,7 +328,7 @@ translate([0,0,-1]) {
 	difference() {
 		case_outline(side, output_outside);
 
-		cylinder(r = output_outside ? axle_tight(axle_output) : r_shaft + clearance_m,
+		cylinder(r = output_outside ? axle_tight(axle_output) : r_shaft + $clearance_m,
 			h = 2, center = true);
 
 		hole_pattern(side, r_bolts);
