@@ -103,7 +103,7 @@ if (render[2] > 0 ) color([0,0,1]) {
 				// stationary pin plate above
 				translate([0,0,1]) difference() {
 					case_outline(r_o + out_padding, r_bolts);
-					cylinder(r = axle_loose(axle_output), h = 2, center=true);
+					cylinder(r = axle_loose(axle_input), h = 2, center=true);
 				}
 			} else {
 				// moving pin plate below
