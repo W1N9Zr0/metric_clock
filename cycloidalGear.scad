@@ -120,45 +120,57 @@ if (render[2] > 0 ) color([0,0,1]) {
 }
 
 // This part places the OUTSIDE ROTOR =========
-if (render[1] > 0 ){
-rotate(output_outside ? alpha / output_ratio : 0)
-color([1,0,0])
-difference(){
-outside_rotor(n_inner_lobes + lobe_diff,
-				hypo_r,
-				hypo_offset,
-				r_bolts,
-				pin_plate_r,
-				axle_output,
-				output_outside);
-  if (render[1] > 1) 
-translate([0,0,-1])	cylinder(r = r_o+1, h = 2, center = true);
-}
-
+if (render[1] > 0 ) color([1,0,0]) {
+	rotate(output_outside ? alpha / output_ratio : 0)
+	difference(){
+		outside_rotor(n_inner_lobes + lobe_diff,
+						hypo_r,
+						hypo_offset,
+						r_bolts,
+						pin_plate_r,
+						axle_output,
+						output_outside);
+		if (render[1] > 1)
+			translate([0,0,-1])	cylinder(r = r_o+1, h = 2, center = true);
+	}
 }
 
 // This part places the ECCENTRIC =========
 //
-if (render[3] > 0)
- rotate([0,0,alpha])
- difference(){
-  eccentric(eccentric_offset, eccentric_r, axle_input);
-  if (render[3] > 1 )
-  translate([0,0, 5/2 -1 ])
-    cylinder(r = axle_tight(axle_input)+.01, h = 10, center = true);
-  }
+if (render[3] > 0) {
+	rotate(alpha)
+	difference(){
+		union(){
+			translate([eccentric_offset, 0, 0])
+				cylinder(r = eccentric_r, h = 1, center = true);
+			if (render[3] < 2)
+				translate([0,0, 5/2])
+				cylinder(r = axle_tight(axle_input), h = 4, center = true);
+		}
+		if (render[3] > 1 )
+			cylinder(r = axle_tight(axle_input), h = 3, center = true);
+	}
+
+}
 
 
 
 // This part places the COVER PLATE =========
-if (render[4]>0)
- color([0.2, 0.7, 0.4, 0.6])
-   cover_plate(r_o,
-				r_bolts,
-				output_outside ? axle_output : axle_input,
-				output_outside,
-				out_padding);
+if (render[4]>0) color([0.2, 0.7, 0.4, 0.6]) {
+	translate([0,0, output_outside ? -1 : 1])
+	difference() {
+		case_outline(r_o + out_padding, r_bolts, layers = output_outside ? 3 : 1);
 
+		if (output_outside)
+			translate([0,0,-1/2])
+			cylinder(r = r_o + $clearance_m, h = 2.1);
+
+		cylinder(
+			r = axle_loose(output_outside ? axle_output : axle_input),
+			h = 5,
+			center = true);
+	}
+}
 }
 
 }
@@ -182,51 +194,11 @@ module case_outline(side, r_bolts, layers = 1) {
 	}
 }
 
-//===========================================
-// Cover Plate
-//
-module cover_plate(	r_o,
-				r_bolts,
-				axle,
-				output_outside,
-				out_padding) {
-translate([0,0, output_outside ? -1 : 1])
-difference() {
-
-	case_outline(r_o + out_padding, r_bolts, layers = output_outside ? 3 : 1);
-
-	if (output_outside)
-		translate([0,0,-1/2])
-		cylinder(r = r_o + $clearance_m, h = 2.1);
-
-	cylinder(
-		r = axle_loose(axle),
-		h = 5,
-		center = true);
-}
-}
-//===========================================	
-
 
 module pin_pattern(n_pins, r_pin_center) {
 	for (i = [0 : n_pins-1]) rotate(i/n_pins * 360)
 		translate([r_pin_center,0]) children();
 }
-
-
-//===========================================
-// Eccentric
-//
-module eccentric(ecc, rotor_gear_outer_radius, axle_input){
-union(){
-translate([0,0, 5/2])
-cylinder(r = axle_tight(axle_input), h = 4, center = true);
-translate([ecc, 0, 0])
-	cylinder(r = rotor_gear_outer_radius, h = 1, center = true);
-}
-}
-//===========================================
-
 
 //===========================================
 // Inside Rotor
