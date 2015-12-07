@@ -54,7 +54,7 @@ module cycloidalDrive(
 r_offset = r_o/(n_inner_lobes);
 r_gen = (r_o - r_offset) / (n_inner_lobes+lobe_diff+1);
 eccentric_offset = lobe_diff * r_gen;
-r_rotor_shaft = eccentric_offset + axle_loose(axle_input) + 2;
+eccentric_r = eccentric_offset + axle_loose(axle_input) + 2;
 
 output_ratio = output_outside ?
 	(n_inner_lobes + lobe_diff) / lobe_diff:
@@ -85,7 +85,7 @@ inside_rotor(n_inner_lobes,
 				r_holes,
 				n_holes,
 				r_hole_center,
-				r_rotor_shaft + $clearance_m);
+				eccentric_r + $clearance_m);
 }
 
 // This part places the OUTSIDE ROTOR =========
@@ -118,7 +118,7 @@ if (render[2] > 0 )
 if (render[3] > 0)
  rotate([0,0,alpha])
  difference(){
-  eccentric(eccentric_offset, r_rotor_shaft, axle_input);
+  eccentric(eccentric_offset, eccentric_r, axle_input);
   if (render[3] > 1 )
   translate([0,0, 5/2 -1 ])
     cylinder(r = axle_tight(axle_input)+.01, h = 10, center = true);
@@ -145,20 +145,18 @@ if (render[4]>0)
 
 corner_r = 10;
 
-module case_outline(side, layers = 1) {
-	minkowski() {
-		cube([side*2 - corner_r*2, side*2 - corner_r*2, layers-.5], center = true);
-		cylinder(r = corner_r, h = 1/2, center=true);
+module case_outline(side, r_bolts, layers = 1) {
+	difference() {
+		minkowski() {
+			cube([side*2 - corner_r*2, side*2 - corner_r*2, layers-.5], center = true);
+			cylinder(r = corner_r, h = 1/2, center=true);
+		}
+
+		for (x=[-1,1], y=[-1,1])
+			translate([x,y] * (side - corner_r))
+				cylinder(r = r_bolts, h = 2* layers, center = true);
 	}
 }
-
-module hole_pattern(side, r_bolts, layers = 1) {
-	for (x=[-1,1], y=[-1,1])
-		translate([x,y] * (side - corner_r))
-			cylinder(r = r_bolts, h = 2* layers, center = true);
-
-}
-
 
 //===========================================
 // Cover Plate
@@ -168,11 +166,10 @@ module cover_plate(	r_o,
 				axle,
 				output_outside,
 				out_padding) {
-
 translate([0,0, output_outside ? -1 : 1])
 difference() {
 
-	case_outline(r_o + out_padding, layers = output_outside ? 3 : 1);
+	case_outline(r_o + out_padding, r_bolts, layers = output_outside ? 3 : 1);
 
 	if (output_outside)
 		translate([0,0,-1/2])
@@ -182,14 +179,15 @@ difference() {
 		r = axle_loose(axle),
 		h = 5,
 		center = true);
-
-
-	hole_pattern(r_o + out_padding, r_bolts, layers = output_outside ? 3 : 1);
 }
-
 }
 //===========================================	
 
+
+module pin_pattern(n_pins, r_pin_center) {
+	for (i = [0 : n_pins-1]) rotate(i/n_pins * 360)
+		translate([r_pin_center,0]) children();
+}
 
 //===========================================
 // Driven Shaft
@@ -202,9 +200,8 @@ union() {
 if (output_outside)
 	translate([0,0,1])
 		difference() {
-			case_outline(r_o + out_padding);
+			case_outline(r_o + out_padding, r_bolts);
 			cylinder(r = axle_loose(axle_output), h = 2, center=true);
-			hole_pattern(r_o + out_padding, r_bolts);
 		}
 else
 	translate([0,0,-1])
@@ -212,18 +209,13 @@ else
 			cylinder(r = pin_plate_r, h = 1, center = true);
 			translate([0,0,-1])cylinder(r = axle_tight(axle_output), h= 3, center=true);
 		}
-color([1,0.2,0.8])
-for  ( i = [0:n_pins-1] ) {
-	rotate([0,0,360/n_pins * i])
-	translate([r_pin_center,0,0])
-		cylinder(r = axle_loose(axle_pin), h = 1, center = true);
+
+		pin_pattern(n_pins, r_pin_center)
+			cylinder(r = axle_loose(axle_pin), h = 1, center = true);
+
 }
-}
-for  ( i = [0:n_pins-1] ) {
-	rotate([0,0,360/n_pins * i])
-	translate([r_pin_center,0,0])
-		cylinder(r = axle_tight(axle_pin), h = 4, center = true);
-}
+		pin_pattern(n_pins, r_pin_center)
+			cylinder(r = axle_tight(axle_pin), h = 4, center = true);
 }
 }
 
@@ -249,24 +241,18 @@ module inside_rotor(	n_lobes,
 				r_gen,
 				w_gen,
 				r_holes,
-				n_holes,
-				r_hole_center,
-				r_shaft) {
+				n_pins,
+				r_pin_center,
+				r_eccentric) {
 translate([0, 0, -1/2])
 difference(){
 	hypotrochoidBandFast(n_lobes, r_gen, w_gen);
 	// These are the pins
-	union() {
-		for ( i = [0:n_holes-1] ) {
-			rotate([0, 0, i*360/n_holes])
-			translate([r_hole_center, 0, 0])
-				cylinder(r = r_holes + $clearance_m, h = 4, center = true);
-		}	
-	}
-	cylinder(r = r_shaft, h = 4, center = true);
+	pin_pattern(n_pins, r_pin_center)
+		cylinder(r = r_holes + $clearance_m, h = 4, center = true);
 
+	cylinder(r = r_eccentric, h = 4, center = true);
 }
-
 }
 //===========================================			
 
@@ -278,7 +264,7 @@ module outside_rotor(	n_lobes,
 				r_gen,
 				w_gen,
 				r_bolts,
-				r_shaft,
+				r_output_plate,
 				axle_output,
 				output_outside) {
 side = (n_lobes+1)*r_gen + w_gen;
@@ -286,12 +272,10 @@ difference() {
 	if (output_outside)
 		cylinder(r = side, h = 1, center = true);
 	else
-		case_outline(side);
+		case_outline(side, r_bolts);
 
 	translate([0, 0, -1]) scale([1,1,2])
 		hypotrochoidBandFast(n_lobes, r_gen, w_gen);
-
-	hole_pattern(side, r_bolts);
 }
 
 translate([0,0,-1]) {
@@ -299,12 +283,10 @@ translate([0,0,-1]) {
 		if (output_outside)
 			cylinder(r = side, h = 1, center = true);
 		else
-			case_outline(side);
+			case_outline(side, r_bolts);
 
-		cylinder(r = output_outside ? axle_tight(axle_output) : r_shaft + $clearance_m,
+		cylinder(r = output_outside ? axle_tight(axle_output) : r_output_plate + $clearance_m,
 			h = 2, center = true);
-
-		hole_pattern(side, r_bolts);
 	}
 }
 
@@ -362,9 +344,6 @@ function hypotrochoid_points(lobes, R, r, offset) =
 // 
 // When r_off = zero the output is the same as a hypocycloid.
 //
-// As far as I know, OpenSCAD does not do arrays, hence the funny big blocks of
-// hardcoded numbers you will see below.
-//
 module hypotrochoidBandFast(n, r, r_off) {
 
 	R = r*n;
@@ -372,23 +351,15 @@ module hypotrochoidBandFast(n, r, r_off) {
 	// set to 1 for normal size cylinders.  this will leave a tiny cusp in some cases that does
 	// not blend in to cylinders.  see below for details.  make hideCuspFactor larger to scale up
 	// the cylinders slightly. 1.01 seems to work OK.
-	hideCuspFactor = 1.01;
-// Now that we have the points, we make a polygon and extrude it.
+	hideCuspFactor = 1.001;
 
 union() {
 for  ( i = [0:n-1] ) {
 rotate([0,0, 360/n*i]) {
 
 	linear_extrude(height = 1, convexity=3)
-		// the first point in the polygon is moved slightly off the origin
-		 polygon(points = hypotrochoid_points(n, R, r, r_off));
+		polygon(points = hypotrochoid_points(n, R, r, r_off));
 
-	// If you look at just the wedge extruded above, without the cylinders below,
-	// you can see a small cusp as the band radius gets larger.  The radius of 
-	// the cylinder is manually increased a slight bit so that the cusp is contained 
-	// within the cylinder.  With unlimited resolution, the cusp and cylinder would
-	// blend together perfectly (I think), but this workaround is needed because
-	// we are only using piecewise linear approximations to these curves.
 	hypoStart = hypotrochoid(0, R, r);
 	translate( [hypoStart[0], hypoStart[1], 1/2])
 		cylinder(r = hideCuspFactor*r_off, h = 1, center = true);
