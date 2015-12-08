@@ -23,13 +23,17 @@ $clearance_m = .2;
 $fs = .2;
 $fa = 1;
 
-layer_n = 0;
-slice = false;
+slice = true;
 
 if (slice) {
-	projection(cut = true)
-	translate([0, 0, (layer_n - 1) * thickness])
-	metricClock(slice);
+	scale(90/inch) // normal svg output is in pixels, this makes it mm
+	for (y=[0:2], x=[0:2]) {
+		layer_n = y*3 + x;
+		translate([x,y] * (size*2 + 1))
+		projection(cut = true)
+		translate([0, 0, (layer_n - 1) * thickness])
+			metricClock(slice, layer_n);
+	}
 }
 else {
 	//intersection() {
@@ -38,11 +42,11 @@ else {
 	//}
 }
 
-module metricClock(slice = false)
+module metricClock(slice = false, layer_n)
 {
 
 // seconds to 10s of seconds
-if (!slice || layer_n >= 0 && layer_n < 3)
+//if (!slice || layer_n >= 0 && layer_n < 3)
 cycloidalDrive(
 	n_inner_lobes = 10,
 	lobe_diff = 1,
@@ -63,7 +67,7 @@ cycloidalDrive(
 	);
 
 // 10s of seconds to minutes
-if (!slice || layer_n >= 3 && layer_n < 5)
+//if (!slice || layer_n >= 3 && layer_n < 5)
 translate([0,0,-thickness * (2)])
 cycloidalDrive(
 	n_inner_lobes = 10,
@@ -84,7 +88,7 @@ cycloidalDrive(
 	t_ratio = -10);
 
 // minutes to hours
-if (!slice || layer_n >= 5)
+//if (!slice || layer_n >= 5)
 translate([0,0,-thickness * (2+3)])
 cycloidalDrive(
 	n_inner_lobes = 9,
