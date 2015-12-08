@@ -17,7 +17,7 @@ rod_r = (axle_tight(tube_3_16) + axle_loose(tube_3_16))/2;
 
 thickness = 6.1;
 size = 50;
-$clearance_m = .2;
+$clearance_m = .1;
 
 //$fn = 100;
 $fs = .2;
